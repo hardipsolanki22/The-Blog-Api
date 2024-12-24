@@ -70,10 +70,6 @@ const generateAccessRefreshToken = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
     const { username, email, password } = req.body
 
-    console.log(`username is ${username}`);
-    console.log(`password is ${password}`);
-    console.log(`email is ${email}`);
-
     if ([username, email, password].some((field) => field?.trim() === '')) {
         throw new ApiError(400, "All field are require")
     }
@@ -87,9 +83,6 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     const avatar = req.file?.path
-
-    console.log('avatar: ', avatar);
-
 
     if (!avatar) {
         throw new ApiError(400, "Avatar is require")
@@ -132,11 +125,6 @@ const loginUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({
         $or: [{ username }, { email }]
     })
-    // console.log(`username is ${username}`);
-    // console.log(`password is ${password}`);
-    // console.log(`findOne : ${user}`);
-    // console.log(`email is ${email}`);
-
 
     if (!user) {
         throw new ApiError(400, "User does not exists")
@@ -202,7 +190,6 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const token = req.cookies?.refreshToken || req.header('Authorized')
-    //console.log('refres: ', token);
 
     const decodedToken = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET)
 
@@ -230,7 +217,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             new ApiResponse(200, {
                 AccessToken, RefreshToken, user,
             }
-                , 'accessToken refresh')
+                , 'accessToken refresh successfully')
         )
 
 })
@@ -244,9 +231,6 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 const forgetPassword = asyncHandler(async (req, res) => {
     const { email } = req.body
-
-    console.log(`email: ${email}`);
-
 
     if (!email) {
         throw new ApiError(400, "email is required")
@@ -270,10 +254,6 @@ const forgetPassword = asyncHandler(async (req, res) => {
             new: true
         }
     )
-    console.log(`exisitUser: ${userExsist}`);
-    console.log(`upadatUser: ${user}`);
-
-    
 
     sendMail(userExsist?.username, email, randomeString)
 
@@ -281,9 +261,6 @@ const forgetPassword = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(200, {}, "check your inbox of mail.")
         )
-
-
-
 
 
 })
@@ -357,13 +334,7 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     const email = req.body?.email
     const avatarLocalPath = req.file?.path
 
-    console.log(`username: ${username}`);
-    console.log(`email: ${email}`);
-    console.log(`avatarLocalPath: ${avatarLocalPath}`);
-
-
     const avatar = await uploadCloudinary(avatarLocalPath)
-
 
     const user = await User.findByIdAndUpdate(req.user._id,
         {
@@ -386,8 +357,6 @@ const searchUser = asyncHandler(async (req, res) => {
 
     const {username} = req.query
 
-    console.log(` query: ${username}`);
-
     if (!username) {
         throw new ApiError(400 , "username is required")
     }
@@ -397,8 +366,6 @@ const searchUser = asyncHandler(async (req, res) => {
     if (!user) {
         throw new ApiError(404, "user not found")
     }
-    console.log(`found user: ${user}`);
-
 
     return res.status(200)
         .json(
@@ -408,10 +375,7 @@ const searchUser = asyncHandler(async (req, res) => {
 })
 
 const getUserProfile = asyncHandler(async(req, res) => {
-    const {username} = req.params
-
-    console.log(`username: ${username}`);
-    
+    const {username} = req.params    
 
     if (!username) {
         throw new ApiError("username is required");
@@ -480,41 +444,6 @@ const getUserProfile = asyncHandler(async(req, res) => {
 
 })
 
-const getAllUsers = asyncHandler(async (req, res) => { 
-
-    const userAllFollowing = await Follows.find({followers: req.user._id})
-
-    console.log(`Follow: ${userAllFollowing}`);
-
-    if (!userAllFollowing.length) {
-        const users = await User.find({
-            $and: [{_id: {$ne: followingsUserId}}]
-        })
-
-        return res.status(200)
-            .json(
-                new ApiResponse(200, users, "users found successfully")
-            )
-    }
-
-    const followingsUserId = userAllFollowing?.map(user => user.followings)
-
-    console.log(`folowingUserId: ${followingsUserId}`);
-    
-
-    const users = await User.find({_id: {$ne: followingsUserId}})
-
-    return res.status(200)
-    .json(
-        new ApiResponse(200, users, "users found successfully")
-    )
-
-
-
-    
-
-
-}) 
 
 
 
@@ -531,6 +460,5 @@ export {
     updateUserDetails,
     searchUser,
     getUserProfile,
-    getAllUsers
 
 }

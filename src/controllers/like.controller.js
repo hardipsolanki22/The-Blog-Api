@@ -10,16 +10,11 @@ const likeDislikePost = asyncHandler(async (req, res) => {
 
     const postId = req.params.postId
 
-    console.log(`postId: ${postId}`)
-
     if (!postId) {
         throw new ApiError(400, "post id is require")
     }
 
     const post = await Post.findById(postId)
-
-    console.log(`post: ${post}`);
-
 
     if (!post) {
         throw new ApiError(404, "post not found")
@@ -53,25 +48,32 @@ const likeDislikePost = asyncHandler(async (req, res) => {
 })
 
 const getPostLikes = asyncHandler(async (req, res) => {
-
     const { postId } = req.params
 
     if (!postId) {
-        throw new ApiError(400, "post id is require")
+        throw new ApiError(400, "post id is required")
     }
 
-    const usersLiked = await Like.aggregate([
+    const post = await Post.findById(postId)
+
+    if (!post) {
+        throw new ApiError(404, "Post not found")
+    }
+
+    const currentUserId = req.user._id
+
+    const postLikesDetails = await Like.aggregate([
         {
             $match: {
-                post: new mongoose.Types.ObjectId(postId)
+                post: new mongoose.Types.ObjectId(post._id)
             }
         },
         {
             $lookup: {
                 from: "users",
-                foreignField: "_id",
                 localField: "likedBy",
-                as: "likedByUser",
+                foreignField: "_id",
+                as: "likedByUsers",
                 pipeline: [
                     {
                         $project: {
@@ -82,16 +84,16 @@ const getPostLikes = asyncHandler(async (req, res) => {
                     {
                         $lookup: {
                             from: "follows",
-                            foreignField: "followings",
                             localField: "_id",
-                            as: "userFollowings",
+                            foreignField: "followings",
+                            as: "userFollowers"
                         }
                     },
                     {
                         $addFields: {
                             isFollowed: {
                                 $cond: {
-                                    if: { $in: [req.user._id, "$userFollwings.followers"] },
+                                    if: { $in: [currentUserId, "$userFollowers.followers"] },
                                     then: true,
                                     else: false
                                 }
@@ -100,7 +102,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
                     },
                     {
                         $project: {
-                            userFollowings: 0
+                            userFollowers: 0
                         }
                     }
                 ]
@@ -108,31 +110,22 @@ const getPostLikes = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                //change field name
                 likedBy: {
-                    $first: "$likedByUser"
-                },
-                isLiked: {
-                    $cond: {
-                        if: { $in: [req.user._id, "$likedByUser._id"] },
-                        then: true,
-                        else: false
-                    }
-                },
+                    $first: "$likedByUsers"
+                }
             }
+
         },
         {
             $project: {
                 likedBy: 1,
-                isLiked: 1,
-                // isFollowed: 1
             }
         }
     ])
 
     return res.status(200)
         .json(
-            new ApiResponse(200, usersLiked, "likes user found successfull")
+            new ApiResponse(200, postLikesDetails, "post like found successfully")
         )
 
 })
@@ -176,15 +169,15 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
             })
 
             return res.status(200)
-            .json(
-                new ApiResponse(
-                    200,
-                    {
-                        isLiked: true
-                    },
-                    "Liked Successfully"
+                .json(
+                    new ApiResponse(
+                        200,
+                        {
+                            isLiked: true
+                        },
+                        "Liked Successfully"
+                    )
                 )
-            )
 
         } else {
 
@@ -193,15 +186,15 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
             })
 
             return res.status(200)
-            .json(
-                new ApiResponse(
-                    200,
-                    {
-                        isLiked: false
-                    },
-                    "Unliked Successfully"
+                .json(
+                    new ApiResponse(
+                        200,
+                        {
+                            isLiked: false
+                        },
+                        "Unliked Successfully"
+                    )
                 )
-            )
         }
     } else if (like === "DISLIKE") {
 
@@ -210,7 +203,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
         })
 
         if (!userAlreadyLiked) {
-            
+
             await Like.create({
                 like,
                 comment: comment._id,
@@ -239,17 +232,57 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
     }
 })
 
+const getCommentLikeDislikeCount = asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
 
+    if (!commentId) {
+        throw new ApiError(400, "comment id is required");
+    }
 
+    const comment = await Comment.findById(commentId);
 
+    if (!comment) {
+        throw new ApiError(404, "Comment not found");
+    }
 
+    const likeDislikeCount = await Like.aggregate([
+        {
+            $match: {
+                comment: new mongoose.Types.ObjectId(comment._id)
+            }
+        },
+        {
+            $group: {
+                _id: "$comment",
+                totalLikes: {
+                    $sum: {
+                        $cond: [{ $eq: ["$like", "LIKE"] }, 1, 0]
+                    }
+                },
+                totalDislikes: {
+                    $sum: {
+                        $cond: [{ $eq: ["$like", "LIKE"] }, 1, 0]
+                    }
+                }
+            }
+        }
+    ]);
 
+    if (likeDislikeCount.length === 0) {
+        return res.status(200).json(
+            new ApiResponse(200, { totalLikes: 0, totalDislikes: 0 }, "No likes or dislikes found")
+        );
+    }
 
-
+    return res.status(200).json(
+        new ApiResponse(200, likeDislikeCount[0], "Comment like and dislike count found successfully")
+    );
+});
 
 export {
     likeDislikePost,
     likeDislikeComment,
     getPostLikes,
+    getCommentLikeDislikeCount
+};
 
-}

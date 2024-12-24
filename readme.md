@@ -41,6 +41,6 @@ The Blog is a comprehensive social blogging platform that enables users to share
 - **Comment on Posts**: Add comments to posts and like or dislike existing comments.
 - **Toggle Theme**: Switch between dark mode and light mode for a better viewing experience.
 
-## Developer
+## Author
 - **Hardip Solanki**
 

@@ -6,8 +6,6 @@ import { uploadCloudinary } from '../utils/Cloudinary.js'
 import { User } from '../models/user.model.js'
 import mongoose from 'mongoose'
 import { Follows } from '../models/followersFollowings.modles.js'
-import { Like } from '../models/like.model.js'
-import { Comment } from '../models/comment.model.js'
 
 
 
@@ -77,11 +75,6 @@ const updatePost = asyncHandler(async (req, res) => {
     const description = req.body?.description
     const status = req.body?.status
     const { postId } = req.params
-
-    console.log(`Title: ${title}`);
-    console.log(`Description: ${description}`);
-    console.log(`Status: ${status}`);
-
 
     if (!postId) {
         throw new ApiError(400, "post id is require")
@@ -277,122 +270,6 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
         )
 })
 
-const getPostLikes = asyncHandler(async (req, res) => {
-    const { postId } = req.params;
-
-    if (!postId) {
-        throw new ApiError(400, "Post id is required")
-    }
-
-    const post = await Post.findById(postId)
-
-    if (!post) {
-        throw new ApiError(404, "Post is not found")
-    }
-
-    const postLikesDetails = await Post.aggregate([
-        {
-            $match: {
-                _id: new mongoose.Types.ObjectId(post._id)
-            }
-        },
-        {
-            $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "post",
-                as: "postLikes",
-                pipeline: [
-                    {
-                        $project: {
-                            post: 0
-                        }
-                    },
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "likedBy",
-                            foreignField: "_id",
-                            as: "likedByUsers",
-                            pipeline: [
-                                {
-                                    $project: {
-                                        username: 1,
-                                        avatar: 1
-                                    }
-                                },
-                                {
-                                    $lookup: {
-                                        from: "follows",
-                                        localField: "_id",
-                                        foreignField: "followigs",
-                                        as: "userFollowings"
-                                    }
-                                },
-                                {
-                                    $addFields: {
-                                        isFollow: {
-                                            $cond: {
-                                                if: { $in: [req.user._id, "$userFollowings.followers"] },
-                                                then: true,
-                                                else: false
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    $project: {
-                                        userFollowings: 0
-                                    }
-                                }
-
-                            ]
-                        }
-                    },
-                    {
-                        $addFields: {
-                            likedBy: {
-                                $first: "$likedByUsers"
-                            },
-                        }
-                    },
-                    {
-                        $project: {
-                            likedByUsers: 0
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            $addFields: {
-                isLiked: {
-                    $cond: {
-                        if: { $in: [req.user._id, "$postLikes.likedBy._id"] },
-                        then: true,
-                        else: false
-                    }
-                },
-            }
-        },
-        {
-            $project: {
-                postLikes: 1,
-                isLiked: 1,
-
-            }
-        }
-    ])
-
-    return res.status(200)
-        .json(
-            new ApiResponse(200, postLikesDetails[0], "Post likes found successfully")
-        )
-
-
-
-})
-
 const getAllPosts = asyncHandler(async (req, res) => {
 
     const { page = 1, limit = 5 } = req.query
@@ -425,6 +302,37 @@ const getAllPosts = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "post",
+                as: "likes"
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "post",
+                as: "isLiked",
+                pipeline: [
+                    {
+                        $match: {
+                            likedBy: new mongoose.Types.ObjectId(req.user._id)
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: {
+                from: "comments",
+                localField: "_id",
+                foreignField: "post",
+                as: "comments"
+            }
+        },
+        {
+            $lookup: {
                 from: "users",
                 localField: "owner",
                 foreignField: "_id",
@@ -441,22 +349,6 @@ const getAllPosts = asyncHandler(async (req, res) => {
 
         },
         {
-            $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "post",
-                as: "likes"
-            }
-        },
-        {
-            $lookup: {
-                from: "comments",
-                localField: "_id",
-                foreignField: "post",
-                as: "comments"
-            }
-        },
-        {
             $addFields: {
                 owner: {
                     $first: "$user"
@@ -469,7 +361,14 @@ const getAllPosts = asyncHandler(async (req, res) => {
                 },
                 isLike: {
                     $cond: {
-                        if: { $in: [req.user._id, "$likes.likedBy"] },
+                        if: {
+                            $gte: [
+                                {
+                                    $size: "$isLiked"
+                                },
+                                1
+                            ]
+                        },
                         then: true,
                         else: false
                     }
@@ -496,48 +395,6 @@ const getAllPosts = asyncHandler(async (req, res) => {
 
 })
 
-const deletePost = asyncHandler(async (req, res) => {
-    const { postId } = req.params
-
-    if (!postId) {
-        throw new ApiError(400, "post id is require")
-    }
-
-    const post = await Post.findById(postId)
-
-    if (!post) {
-        throw new ApiError(404, "Post not found")
-    }
-
-    await Post.aggregate([
-        {
-            $match: {
-                _id: mongoose.Types.ObjectId(post._id)
-            }
-        },
-        {
-            $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "post",
-                as: "likes"
-            }
-        },
-        {
-            $lookup: {
-                from: "comments",
-                localField: "_id",
-                foreignField: "post",
-                as: "comments"
-            }
-        }
-    ])
-
-    return res.status(200)
-        .json(
-            new ApiResponse(200, {}, "delete post successfully")
-        )
-})
 
 export {
     createPost,
@@ -545,7 +402,6 @@ export {
     updatePost,
     getUserAllPost,
     getFollowingsUserPost,
-    getPostLikes,
     getAllPosts,
     deletePost,
 }

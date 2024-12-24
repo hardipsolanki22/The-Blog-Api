@@ -10,7 +10,6 @@ import {
     searchUser,
     forgetPassword,
     resetPassword,
-    getAllUsers,
     getUserProfile,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.js";
@@ -24,10 +23,9 @@ router.route('/logout').post(verifyJwt, logoutUser)
 router.route('/access-refresh-token').post(refreshAccessToken)
 router.route('/get-user').get(verifyJwt, getCurrentUser)
 router.route('/change-password').patch(verifyJwt, changePassword)
-router.route('/update-account-details').patch(verifyJwt,upload.single('avatar'), updateUserDetails)
+router.route('/update-account-details').put(verifyJwt,upload.single('avatar'), updateUserDetails)
 router.route('/search-user').get(searchUser)
 router.route('/forger-password').post(forgetPassword)
 router.route('/reset-password').patch(resetPassword)
 router.route('/profile/:username').get(verifyJwt, getUserProfile)
-router.route('/get-all-users').get(verifyJwt, getAllUsers)
 export default router

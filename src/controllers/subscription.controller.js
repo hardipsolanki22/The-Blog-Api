@@ -9,10 +9,6 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
 
     const { userId } = req.params
 
-    console.log(`userId: ${userId}`);
-    console.log(`loginUser: ${req.user._id}`);
-
-
     if (!userId) {
         throw new ApiError(400, "user id is required")
     }
@@ -210,45 +206,9 @@ const getUserFollowers = asyncHandler(async (req, res) => {
 
 })
 
-const getFollowStatus = asyncHandler(async (req, res) => {
-    const { username } = req.params
-
-    if (!username) {
-        throw new ApiError(400, "username is requires")
-    }
-
-    const user = await User.findOne({ username })
-
-    if (!user) {
-        throw new ApiError(404, "user not found")
-    }
-
-    const userIsFollow = await Follows.findOne({
-        $and: [{ followings: user?._id }, { followers: req.user?._id }]
-    })
-
-    if (userIsFollow) {
-        return res.status(200)
-            .json(
-                new ApiResponse(200, {following: true}, "User Following Status")
-            )
-    } else {
-        return res.status(200)
-            .json(
-                new ApiResponse(200, {following: false}, "User Following Status")
-            )
-    }
-})
-
-
-
-
-
-
 
 export {
     followUnfollowUser,
     getUserFollowigns,
     getUserFollowers,
-    getFollowStatus,
 }
