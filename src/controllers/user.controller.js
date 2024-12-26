@@ -4,27 +4,10 @@ import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { uploadCloudinary } from '../utils/Cloudinary.js'
 import jwt from 'jsonwebtoken'
-import { Post } from '../models/post.models.js'
-import { Like } from '../models/like.model.js'
-import { Follows } from '../models/followersFollowings.modles.js'
-import { Comment } from '../models/comment.model.js'
-import mongoose from 'mongoose'
+import { transporter } from '../utils/mail.js'
 
 const sendMail = async (username, email, token) => {
-    console.log(`username in mail: ${username}`);
-    
     try {
-        const service = nodemailer.createTransport({
-            service: "gmail",
-            host: "smtp.gmail.com",
-            port: 465,
-            secure: true,
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.PASSWORD
-            }
-        })
-
         const mailOPtions = {
             from: process.env.EMAIL,
             to: email,
@@ -34,14 +17,12 @@ const sendMail = async (username, email, token) => {
                     <h2 style="color: #333;">Hi ${username},</h2>
                     <p>Please click the link below to reset your password:</p>
                     <a href="http://localhost:5173/reset-password?token=${token}" style="color: #1a73e8;">Reset Password</a>
-                </div>
-            `
-
+                </div>`
         }
 
-        service.sendMail(mailOPtions, (error, info) => {
+        transporter.sendMail(mailOPtions, (error, info) => {
             if (error) {
-                console.log("error: ", error);
+                throw new ApiError(500, "Error while send mail")
             } else {
                 console.log(`Mail has been send: `, info);
             }
@@ -236,15 +217,15 @@ const forgetPassword = asyncHandler(async (req, res) => {
         throw new ApiError(400, "email is required")
     }
 
-    const userExsist = await User.findOne({ email })
+    const user = await User.findOne({ email })
 
-    if (!userExsist) {
+    if (!user) {
         throw new ApiError(404, "user does not exsist")
     }
 
-    const randomeString = userExsist.generateRandomeStrings()
+    const randomeString = user.generateRandomeStrings()
 
-    const user = await User.updateOne({ email },
+         await User.updateOne({ email },
         {
             $set: {
                 token: randomeString
@@ -255,7 +236,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
         }
     )
 
-    sendMail(userExsist?.username, email, randomeString)
+    sendMail(user?.username, email, randomeString)
 
     return res.status(200)
         .json(
@@ -290,8 +271,8 @@ const resetPassword = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please Enter strong password")
     }
 
-     user.password = password
-     await user.save()
+    user.password = password
+    await user.save()
 
 
     return res.status(200)
@@ -355,10 +336,10 @@ const updateUserDetails = asyncHandler(async (req, res) => {
 
 const searchUser = asyncHandler(async (req, res) => {
 
-    const {username} = req.query
+    const { username } = req.query
 
     if (!username) {
-        throw new ApiError(400 , "username is required")
+        throw new ApiError(400, "username is required")
     }
 
     const user = await User.find({ username: new RegExp(username, "i") })
@@ -374,8 +355,8 @@ const searchUser = asyncHandler(async (req, res) => {
 
 })
 
-const getUserProfile = asyncHandler(async(req, res) => {
-    const {username} = req.params    
+const getUserProfile = asyncHandler(async (req, res) => {
+    const { username } = req.params
 
     if (!username) {
         throw new ApiError("username is required");
@@ -406,17 +387,17 @@ const getUserProfile = asyncHandler(async(req, res) => {
         {
             $addFields: {
                 followingsCount: {
-                    $size: {$ifNull: ["$followings", []]}
+                    $size: { $ifNull: ["$followings", []] }
                 },
                 followersCount: {
-                        $size: { $ifNull: ["$followers", []]}
+                    $size: { $ifNull: ["$followers", []] }
                 },
                 isFollowed: {
-                   $cond: {
-                    if: {$in: [req.user?._id, "$followers.followers"]},
-                    then: true,
-                    else: false
-                   }
+                    $cond: {
+                        if: { $in: [req.user?._id, "$followers.followers"] },
+                        then: true,
+                        else: false
+                    }
                 }
             }
         },
@@ -439,8 +420,8 @@ const getUserProfile = asyncHandler(async(req, res) => {
     }
 
     return res
-    .status(200)
-    .json( new ApiResponse(200 , profile[0] , "user profiule fetched successfully"))
+        .status(200)
+        .json(new ApiResponse(200, profile[0], "user profiule fetched successfully"))
 
 })
 

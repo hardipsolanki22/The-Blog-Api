@@ -163,12 +163,109 @@ const getUserAllPost = asyncHandler(async (req, res) => {
 
 const getFollowingsUserPost = asyncHandler(async (req, res) => {
 
-    const page = parseInt(req.query.page)
-    const limit = parseInt(req.query.limit)
+    const { page = 1, limit = 5 } = req.query
 
-    const skip = limit * (page - 1)
+    const skip = parseInt(limit) * (parseInt(page) - 1)
 
-    const userPosts = await Follows.aggregate([
+    const followings = await Follows.find({ followers: req.user._id })
+        .select("-followers")
+
+    const followingIds = followings?.map(follow => follow.followings)
+
+
+    const posts = await Post.aggregate([
+        {
+            $match: {
+                owner: { $in: followingIds },
+                status: "active"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "user",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            },
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "post",
+                as: "likes"
+            },
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "post",
+                as: "isLike",
+                pipeline: [
+                    {
+                        $match: {
+                            likedBy: new mongoose.Types.ObjectId(req.user._id)
+                        }
+                    }
+                ]
+            },
+        },
+        {
+            $lookup: {
+                from: "comments",
+                localField: "_id",
+                foreignField: "post",
+                as: "comments"
+            }
+        },
+        {
+            $addFields: {
+                owner: {
+                    $first: "$user"
+                },
+                likesCount: {
+                    $size: { $ifNull: ["$likes", []] }
+                },
+                commentsCount: {
+                    $size: { $ifNull: ["$comments", []] }
+                },
+                isLike: {
+                    $cond: {
+                        if: {
+                            $gte: [
+                                {
+                                    $first: "$isLike"
+                                },
+                                1
+                            ]
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                title: 1,
+                description: 1,
+                image: 1,
+                status: 1,
+                owner: 1,
+                likesCount: 1,
+                commentsCount: 1,
+                isLike: 1
+            }
+        },
         {
             $sort: { title: 1 }
         },
@@ -176,97 +273,19 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
             $skip: skip
         },
         {
-            $limit: limit
+            $limit: parseInt(limit)
         },
-        {
-            $match: {
-                followers: new mongoose.Types.ObjectId(req.user?._id)
-            }
-        },
-        {
-            $lookup: {
-                from: "posts",
-                localField: "followings",
-                foreignField: "owner",
-                as: "followingsUserPosts",
-                pipeline: [
-                    {
-                        $match: {
-                            status: "active"
-                        }
-                    },
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "owner",
-                            foreignField: "_id",
-                            as: "user",
-                            pipeline: [
-                                {
-                                    $project: {
-                                        username: 1,
-                                        avatar: 1
-                                    }
-                                }
-                            ]
-                        },
-                    },
-                    {
-                        $lookup: {
-                            from: "likes",
-                            localField: "_id",
-                            foreignField: "post",
-                            as: "likes"
-                        },
-                    },
-                    {
-                        $lookup: {
-                            from: "comments",
-                            localField: "_id",
-                            foreignField: "post",
-                            as: "comments"
-                        }
-                    },
-                    {
-                        $addFields: {
-                            owner: {
-                                $first: "$user"
-                            },
-                            likesCount: {
-                                $size: { $ifNull: ["$likes", []] }
-                            },
-                            commentsCount: {
-                                $size: { $ifNull: ["$comments", []] }
-                            }
-                        }
-                    },
-                    {
-                        $project: {
-                            user: 0,
-                            likes: 0,
-                            comments: 0
-                        }
-                    },
-                ]
-            }
-        },
-        {
-            $project: {
-                followingsUserPosts: 1,
-                likesCount: 1,
-                commentsCount: 1
-            }
-        }
 
     ])
 
-    if (!userPosts.length) {
+
+    if (!posts.length) {
         throw new ApiError(404, "user does not following any users")
     }
 
     return res.status(200)
         .json(
-            new ApiResponse(200, userPosts[0].followingsUserPosts, "followings user posts found successfully")
+            new ApiResponse(200, posts, "followings user posts found successfully")
         )
 })
 
@@ -274,28 +293,17 @@ const getAllPosts = asyncHandler(async (req, res) => {
 
     const { page = 1, limit = 5 } = req.query
 
-    const skip = [limit] * ([page] - 1)
+    const skip = parseInt(limit) * (parseInt(page) - 1)
 
-    // const page = parseInt(req.query.page)
-    // const limit = parseInt(req.query.limit)
+    const followings = await Follows.find({ followers: req.user._id }).
+        select('followings');
 
-    // const skip = limit * (page - 1);
+    const followingIds = followings.map(follow => follow.followings);
 
     const posts = await Post.aggregate([
         {
-            $sort: {
-                title: 1
-            },
-        },
-        {
-            $skip: skip
-        },
-        {
-            $limit: parseInt(limit)
-        },
-        {
             $match: {
-                owner: { $ne: new mongoose.Types.ObjectId(req.user?._id) },
+                owner: { $nin: followingIds },
                 status: "active"
 
             }
@@ -386,13 +394,48 @@ const getAllPosts = asyncHandler(async (req, res) => {
                 commentsCount: 1,
                 isLike: 1
             }
-        }
-    ])
+        },
+        {
+            $sort: {
+                title: 1
+            },
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: parseInt(limit)
+        },
+    ]);
+
 
     return res.status(200).json(
         new ApiResponse(200, posts, "All Posts found successfully")
     );
 
+})
+
+const deletePost = asyncHandler(async (req, res) => {
+    const { postId } = req.params
+
+    if (!postId) {
+        throw new ApiError(400, "post id is required")
+    }
+
+    const post = await Post.findById(postId)
+
+    if (!post) {
+        throw new ApiError(404, "post not found")
+    }
+
+    await Post.findByIdAndDelete(postId)
+
+    //return
+
+    res.status(200)
+        .json(
+            new ApiResponse(200, "post delete succesfully")
+        )
 })
 
 
@@ -403,5 +446,5 @@ export {
     getUserAllPost,
     getFollowingsUserPost,
     getAllPosts,
-    deletePost,
+    deletePost
 }
