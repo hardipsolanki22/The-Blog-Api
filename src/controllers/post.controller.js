@@ -6,6 +6,7 @@ import { uploadCloudinary } from '../utils/Cloudinary.js'
 import { User } from '../models/user.model.js'
 import mongoose from 'mongoose'
 import { Follows } from '../models/followersFollowings.modles.js'
+import {Like} from '../models/like.model.js'
 
 
 
@@ -428,7 +429,9 @@ const deletePost = asyncHandler(async (req, res) => {
         throw new ApiError(404, "post not found")
     }
 
-    await Post.findByIdAndDelete(postId)
+    await Like.findOneAndDelete({post: post._id})
+    await Comment.findOneAndDelete({post: post._id})
+    await Post.findByIdAndDelete(post._id)
 
     //return
 

@@ -5,7 +5,7 @@ const postShema = new Schema(
     {
         title: {
             type: String,
-            require: true,
+            required: true,
             min: [15 , 'maximum 15 charecter']
         },
         description: {
@@ -18,12 +18,12 @@ const postShema = new Schema(
         },
         image: {
             type: String,
-            rquire: true
+            required: true
         },
         status: {
             type:String,
             // enum: ['active' , 'inactive'],
-            require: true,
+            required: true,
             default: 'active'
         }
     } ,{timestamps: true})

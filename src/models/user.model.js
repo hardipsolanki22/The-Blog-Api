@@ -4,6 +4,10 @@ import jwt from "jsonwebtoken"
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const userSchema = new Schema({
+    name: {
+        type: String,
+        required: true,
+    },
     username: {
         type: String,
         required: true,
@@ -19,11 +23,14 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        require: [true , "Password is rqquired"]
+        required: [true , "Password is rqquired"]
     },
     avatar: {
         type: String,
-        require: true,
+        required: true,
+    },
+    coverImage: {
+        type: String,
     },
     refreshToken: {
         type: String,

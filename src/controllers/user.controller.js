@@ -5,6 +5,8 @@ import { ApiResponse } from '../utils/ApiResponse.js'
 import { uploadCloudinary } from '../utils/Cloudinary.js'
 import jwt from 'jsonwebtoken'
 import { transporter } from '../utils/mail.js'
+import { Follows } from '../models/followersFollowings.modles.js'
+import mongoose from 'mongoose'
 
 const sendMail = async (username, email, token) => {
     try {
@@ -49,10 +51,10 @@ const generateAccessRefreshToken = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-    const { username, email, password } = req.body
+    const { name, username, email, password } = req.body
 
-    if ([username, email, password].some((field) => field?.trim() === '')) {
-        throw new ApiError(400, "All field are require")
+    if ([name, username, email, password].some((field) => field?.trim() === '')) {
+        throw new ApiError(400, "All fields are required")
     }
 
     const isUserExsist = await User.findOne({
@@ -60,26 +62,31 @@ const registerUser = asyncHandler(async (req, res) => {
     })
 
     if (isUserExsist) {
-        throw new ApiError(400, "User with this email isalredy exsist")
-    }
+        throw new ApiError(400, "User with this email and username already exists")
+    }    
 
-    const avatar = req.file?.path
+    const avatarLocalPath = req.files.avatar?.[0].path;
+    const coverImageLocalPath = req.files?.coverImage?.[0].path;
 
-    if (!avatar) {
-        throw new ApiError(400, "Avatar is require")
-    }
-
-    const avatarLocalPath = await uploadCloudinary(avatar)
 
     if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar is required")
+    }
+    const avatar = await uploadCloudinary(avatarLocalPath)
+    const coverImage = coverImageLocalPath && await uploadCloudinary(coverImageLocalPath)
+
+
+    if (!avatar) {
         throw new ApiError(400, "Avatar is missing")
     }
 
     const createUser = await User.create({
+        name,
         username: username.toLowerCase(),
         email,
         password,
-        avatar: avatarLocalPath
+        avatar,
+        coverImage: coverImage ?? ""
     })
 
     const user = await User.findById(createUser._id).select(
@@ -225,7 +232,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
 
     const randomeString = user.generateRandomeStrings()
 
-         await User.updateOne({ email },
+    await User.updateOne({ email },
         {
             $set: {
                 token: randomeString
@@ -236,7 +243,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
         }
     )
 
-    sendMail(user?.username, email, randomeString)
+    sendMail(user.username, email, randomeString)
 
     return res.status(200)
         .json(
@@ -272,7 +279,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     }
 
     user.password = password
-    await user.save()
+    await user.save({ validateBeforeSave: true })
 
 
     return res.status(200)
@@ -283,14 +290,10 @@ const resetPassword = asyncHandler(async (req, res) => {
 })
 
 const changePassword = asyncHandler(async (req, res) => {
-    const { oldpassword, newpassword, conformpassword } = req.body
+    const { oldpassword, newpassword } = req.body
 
-    if (!(oldpassword, newpassword, conformpassword)) {
+    if (oldpassword || newpassword) {
         throw new ApiError(400, 'All field are require')
-    }
-
-    if (newpassword !== conformpassword) {
-        throw new ApiError(400, "password is not same")
     }
 
     const user = await User.findById(req.user._id)
@@ -302,7 +305,7 @@ const changePassword = asyncHandler(async (req, res) => {
     }
 
     user.password = newpassword
-    await user.save({ validayeBeforeSave: false })
+    await user.save({ validayeBeforeSave: true })
 
     res.status(200)
         .json(
@@ -311,18 +314,18 @@ const changePassword = asyncHandler(async (req, res) => {
 })
 
 const updateUserDetails = asyncHandler(async (req, res) => {
-    const username = req.body?.username
-    const email = req.body?.email
-    const avatarLocalPath = req.file?.path
+    const { name, username, email } = req.body
 
-    const avatar = await uploadCloudinary(avatarLocalPath)
+    if (!name || !username || !email) {
+        throw new ApiError(400, "at least one field is required")
+    }
 
     const user = await User.findByIdAndUpdate(req.user._id,
         {
             $set: {
+                name,
                 username,
                 email,
-                avatar
             }
         },
         { new: true }
@@ -331,6 +334,53 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     return res.status(200)
         .json(
             new ApiResponse(200, user, "user details update successfully")
+        )
+})
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    const avatarLocalPath = req.file?.path
+
+    const avatar = await uploadCloudinary(avatarLocalPath)
+
+    if (!avatar) {
+        throw new ApiError(400, "error while uploading avatar")
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id,
+        {
+            $set: {
+                avatar
+            }
+        }
+    ).select("-password")
+
+    return res.status(200)
+        .json(
+            new ApiResponse(200, user, "Avatar image update successfully")
+        )
+})
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+    const coverImageLocalPath = req.file?.path
+
+    const coverImage = await uploadCloudinary(coverImageLocalPath)
+
+    if (!coverImage) {
+        throw new ApiError(400, "error while updating cover image")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                coverImage
+            }
+        }
+    ).select("-password")
+
+    return res.status(200)
+        .json(
+            new ApiResponse(200, user, "Cover image update successfully")
         )
 })
 
@@ -425,6 +475,34 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
 })
 
+const getAllUsers = asyncHandler(async (req, res) => {
+    // get user following
+    // if user following some user than find
+    // those user which is not preset in  current user followings list
+    // if user does not following any user than find 
+    // all users not only login user
+
+    const userFollowings = await Follows.find({ followers: req.user._id })
+    userFollowings.push({followings: req.user._id})
+
+    const followingIds = userFollowings.map((follow) => follow.followings)    
+
+    let users;
+
+    if (userFollowings.length > 0) {
+        users = await User.find({ _id: { $nin: followingIds} }).select("-password")
+    } else {
+        users = await User.find({ _id: { $nin: new mongoose.Types.ObjectId(req.user._id) } }).select("-password")
+    }
+
+    return res.status(200)
+        .json(
+            new ApiResponse(200, users, "All users found successfully")
+        )
+
+
+})
+
 
 
 
@@ -439,7 +517,10 @@ export {
     changePassword,
     refreshAccessToken,
     updateUserDetails,
+    updateUserAvatar,
+    updateUserCoverImage,
     searchUser,
     getUserProfile,
+    getAllUsers
 
 }
