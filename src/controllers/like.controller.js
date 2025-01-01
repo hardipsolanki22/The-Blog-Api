@@ -168,6 +168,12 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
                 likedBy: req.user._id
             })
 
+            await Like.deleteOne({
+                like: "DISLIKE",
+                comment: comment._id ,
+                likedBy: req.user._id
+            })
+
             return res.status(200)
                 .json(
                     new ApiResponse(
@@ -207,6 +213,12 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
             await Like.create({
                 like,
                 comment: comment._id,
+                likedBy: req.user._id
+            })
+
+            await Like.deleteOne({
+                like: "LIKE",
+                comment: comment._id ,
                 likedBy: req.user._id
             })
 
