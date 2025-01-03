@@ -82,7 +82,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     const createUser = await User.create({
-        name,
+        name: `@${name}`,
         username: username.toLowerCase(),
         email,
         password,
@@ -104,16 +104,14 @@ const registerUser = asyncHandler(async (req, res) => {
 })
 
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, username, password } = req.body
+    const { email, password } = req.body        
 
-    if (!(email || username)) {
+    if (!email) {
         throw new ApiError(400, "username or email is require")
     }
 
 
-    const user = await User.findOne({
-        $or: [{ username }, { email }]
-    })
+    const user = await User.findOne({email})
 
     if (!user) {
         throw new ApiError(400, "User does not exists")
@@ -454,9 +452,11 @@ const getUserProfile = asyncHandler(async (req, res) => {
         },
         {
             $project: {
+                name: 1,
                 username: 1,
                 email: 1,
                 avatar: 1,
+                coverImage: 1,
                 followingsCount: 1,
                 followersCount: 1,
                 isFollowed: 1
