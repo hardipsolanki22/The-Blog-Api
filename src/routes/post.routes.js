@@ -14,11 +14,11 @@ const router = Router()
 
 router.route('/add-post').post(verifyJwt, upload.single('post'), createPost)
 router.route('/update-post/:postId').put(verifyJwt , updatePost)
-router.route('/get-post/:postId').get(verifyJwt , getPost)
+router.route('/get-posts/:postId').get(verifyJwt , getPost)
 router.route('/get-user-all-posts/:userId').get(verifyJwt , getUserAllPost)
 router.route('/get-followings-user-posts').get(verifyJwt , getFollowingsUserPost)
 router.route('/get-all-posts').get(verifyJwt ,getAllPosts)
-router.route('/delete-post/:postId').delete(verifyJwt , deletePost)
+router.route('/delete-posts/:postId').delete(verifyJwt , deletePost)
 
 export default router
 
