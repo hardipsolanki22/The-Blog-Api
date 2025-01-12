@@ -82,7 +82,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     const createUser = await User.create({
-        name: `@${name}`,
+        name: `${name.replaceAll("@", "")}`,
         username: username.toLowerCase(),
         email,
         password,
@@ -255,10 +255,14 @@ const forgetPassword = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
 
     const { token } = req.query
-    const { password } = req.body
+    const { password, conformPassword } = req.body
 
-    if (!password) {
+    if (!password || !conformPassword) {
         throw new ApiError(400, "password is reuqired")
+    }
+
+    if (password !== conformPassword) {
+        throw new ApiError(400, "Conform Password is not same")
     }
 
     const decodedInfo = jwt.verify(token, process.env.RANDOME_STRING_GENERATE)
@@ -289,21 +293,21 @@ const resetPassword = asyncHandler(async (req, res) => {
 })
 
 const changePassword = asyncHandler(async (req, res) => {
-    const { oldpassword, newpassword } = req.body
+    const { oldPassword, newPassword } = req.body
 
-    if (oldpassword || newpassword) {
+    if (!oldPassword || !newPassword) {
         throw new ApiError(400, 'All field are require')
     }
 
     const user = await User.findById(req.user._id)
 
-    const validePassword = await user.isPasswordCurrect(oldpassword)
+    const validePassword = await user.isPasswordCurrect(oldPassword)
 
     if (!validePassword) {
         throw new ApiError(400, "Invalide password")
     }
 
-    user.password = newpassword
+    user.password = newPassword
     await user.save({ validayeBeforeSave: true })
 
     res.status(200)
@@ -322,7 +326,7 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id,
         {
             $set: {
-                name,
+                name: `${name}`,
                 username,
                 email,
             }
@@ -393,7 +397,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 const searchUser = asyncHandler(async (req, res) => {
 
-    const { username } = req.query
+    const {username} = req.query
 
     if (!username) {
         throw new ApiError(400, "username is required")

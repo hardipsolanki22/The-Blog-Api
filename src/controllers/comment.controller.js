@@ -6,7 +6,8 @@ import { Comment } from '../models/comment.model.js';
 import mongoose from 'mongoose';
 
 const createComment = asyncHandler(async (req, res) => {
-    const { content, postId } = req.body;
+    const { content} = req.body;
+    const {postId} = req.params;
 
     if (!(content || postId)) {
         throw new ApiError(400, "All filed are require")
@@ -52,17 +53,6 @@ const getPostComment = asyncHandler(async (req, res) => {
     }
 
     const comments = await Comment.aggregate([
-        {
-            $sort: {
-                content: 1
-            }
-        },
-        {
-            $skip: limit * (page - 1)
-        },
-        {
-            $limit: parseInt(limit)
-        },
         {
             $match: {
                 post: new mongoose.Types.ObjectId(post._id)
@@ -200,7 +190,18 @@ const getPostComment = asyncHandler(async (req, res) => {
                 isCommentDisLike: 1
 
             }
-        }
+        },
+        {
+            $sort: {
+                content: 1
+            }
+        },
+        {
+            $skip: limit * (page - 1)
+        },
+        {
+            $limit: parseInt(limit)
+        },
     ])
 
     if (!comments.length) {

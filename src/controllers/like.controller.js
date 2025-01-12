@@ -4,6 +4,7 @@ import { ApiResponse } from '../utils/ApiResponse.js'
 import { Like } from '../models/like.model.js';
 import { Post } from '../models/post.models.js';
 import { Comment } from '../models/comment.model.js';
+import { Tweet } from '../models/tweet.model.js'
 import mongoose, { isValidObjectId } from 'mongoose';
 
 const likeDislikePost = asyncHandler(async (req, res) => {
@@ -49,6 +50,8 @@ const likeDislikePost = asyncHandler(async (req, res) => {
 
 const getPostLikes = asyncHandler(async (req, res) => {
     const { postId } = req.params
+    const { page = 1, limit = 3 } = req.query
+
 
     if (!postId) {
         throw new ApiError(400, "post id is required")
@@ -59,6 +62,9 @@ const getPostLikes = asyncHandler(async (req, res) => {
     if (!post) {
         throw new ApiError(404, "Post not found")
     }
+
+    const skip = parseInt(limit) * (parseInt(page) - 1)
+
 
     const currentUserId = req.user._id
 
@@ -120,7 +126,18 @@ const getPostLikes = asyncHandler(async (req, res) => {
             $project: {
                 likedBy: 1,
             }
-        }
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
+            $limit: parseInt(limit)
+        },
+        {
+            $skip: skip
+        },
     ])
 
     return res.status(200)
@@ -170,7 +187,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
 
             await Like.deleteOne({
                 like: "DISLIKE",
-                comment: comment._id ,
+                comment: comment._id,
                 likedBy: req.user._id
             })
 
@@ -179,7 +196,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
                     new ApiResponse(
                         200,
                         {
-                            isLiked: true
+                            commentLike: true
                         },
                         "Liked Successfully"
                     )
@@ -196,7 +213,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
                     new ApiResponse(
                         200,
                         {
-                            isLiked: false
+                            commentLike: false
                         },
                         "Unliked Successfully"
                     )
@@ -218,7 +235,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
 
             await Like.deleteOne({
                 like: "LIKE",
-                comment: comment._id ,
+                comment: comment._id,
                 likedBy: req.user._id
             })
 
@@ -291,10 +308,138 @@ const getCommentLikeDislikeCount = asyncHandler(async (req, res) => {
     );
 });
 
+const likeDislikeTweet = asyncHandler(async (req, res) => {
+
+    const { tweetId } = req.params
+    const { type } = req.query
+
+    if (!tweetId) {
+        throw new ApiError(400, "Tweet id is required")
+    }
+
+    const tweet = await Tweet.findById(tweetId)
+
+    if (!tweet) {
+        throw new ApiError(404, "Tweet not found")
+    }
+
+    if (type === 'LIKE') {
+
+        const isTweetLike = await Like.findOne({
+            tweet: tweet._id,
+            like: 'LIKE',
+            likedBy: req.user._id
+        })
+
+        if (!isTweetLike) {
+
+            await Like.create({
+                like: 'LIKE',
+                tweet: tweet._id,
+                likedBy: req.user._id
+            })
+
+            await Like.findOneAndDelete({
+                like: 'DISLIKE',
+                tweet: tweet._id,
+                likedBy: req.user._id
+            })
+
+            return res.status(200)
+                .json(
+                    new ApiResponse(
+                        200,
+                        {
+                            tweetLike: true
+                        },
+                        "Tweet like successfully"
+                    )
+                )
+        } else {
+
+            await Like.findOneAndDelete({
+                like: 'LIKE',
+                tweet: tweet._id,
+                likedBy: req.user._id
+            })
+
+            return res.status(200)
+                .json(
+                    new ApiResponse(
+                        200,
+                        {
+                            tweetLike: false
+                        },
+                        "Tweet Unlike successfully"
+                    )
+                )
+        }
+
+
+    } else if (type === 'DISLIKE') {
+
+        const isTweetDisLike = await Like.findOne({
+            tweet: tweet._id,
+            like: 'DISLIKE',
+            likedBy: req.user._id
+        })
+
+        if (!isTweetDisLike) {
+
+            await Like.create({
+                like: 'DISLIKE',
+                tweet: tweet._id,
+                likedBy: req.user._id
+            })
+
+            await Like.findOneAndDelete({
+                like: 'LIKE',
+                tweet: tweet._id,
+                likedBy: req.user._id
+            })
+
+            return res.status(200)
+                .json(
+                    new ApiResponse(
+                        200,
+                        {
+                            tweetDisLike: true
+                        },
+                        "Tweet like successfully"
+                    )
+                )
+        } else {
+
+            await Like.findOneAndDelete({
+                like: 'DISLIKE',
+                tweet: tweet._id,
+                likedBy: req.user._id
+            })
+
+            return res.status(200)
+                .json(
+                    new ApiResponse(
+                        200,
+                        {
+                            tweetDisLike: false
+                        },
+                        "Tweet Unlike successfully"
+                    )
+                )
+        }
+
+    } else {
+        throw new ApiError(400, "Invalide Like Type")
+    }
+
+})
+
+
 export {
     likeDislikePost,
     likeDislikeComment,
     getPostLikes,
-    getCommentLikeDislikeCount
+    getCommentLikeDislikeCount,
+    likeDislikeTweet
 };
 

@@ -53,16 +53,12 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
     const { userId } = req.params
     const { page = 1, limit = 10 } = req.query
 
+    const skip = parseInt(limit) * (parseInt(page) - 1)
+
     if (!userId) {
         throw new ApiError(400, "user id is required");
     }
     const userDetails = await Follows.aggregate([
-        {
-            $skip: limit * (page - 1)
-        },
-        {
-            $limit: limit
-        },
         {
             $match: {
                 followers: new mongoose.Types.ObjectId(userId),
@@ -109,11 +105,29 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
             }
         },
         {
+            $addFields: {
+                followDetails: {
+                    $first: "$followDetails"
+                }
+            }
+        },
+        {
             $project: {
                 followDetails: 1,
                 isFollowed: 1
             }
-        }
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: parseInt(limit)
+        },
     ]);
 
 
@@ -127,19 +141,14 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
 const getUserFollowers = asyncHandler(async (req, res) => {
 
     const { userId } = req.params
-    const {page = 1, limit = 10} = req.query
+    const {page = 1, limit = 10} = req.query    
 
+    const skip = parseInt(limit) * (parseInt(page) - 1)
 
     if (!userId) {
         throw new ApiError(400, "user id is required");
     }
     const userDetails = await Follows.aggregate([
-        {
-            $skip: limit * (page - 1)
-        },
-        {
-            $limit: limit
-        },
         {
             $match: {
                 followings: new mongoose.Types.ObjectId(userId),
@@ -197,7 +206,18 @@ const getUserFollowers = asyncHandler(async (req, res) => {
                 followDetails: 1,
                 isFollowed: 1
             }
-        }
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: parseInt(limit)
+        },
     ]);
 
     return res.status(200).json(

@@ -6,14 +6,16 @@ import { uploadCloudinary } from '../utils/Cloudinary.js'
 import { User } from '../models/user.model.js'
 import mongoose from 'mongoose'
 import { Follows } from '../models/followersFollowings.modles.js'
-import {Like} from '../models/like.model.js'
+import { Like } from '../models/like.model.js'
+import { Comment } from '../models/comment.model.js'
 
 
 
 const createPost = asyncHandler(async (req, res) => {
-    const { title, description, status } = req.body
+    const { title, content, status = "active" } = req.body
 
-    if ([title, description].some((filed) => filed?.trim() === '')) {
+
+    if ([title, content].some((filed) => filed?.trim() === '')) {
         throw new ApiError(400, "all filed are require")
     }
 
@@ -33,7 +35,7 @@ const createPost = asyncHandler(async (req, res) => {
 
     const createPost = await Post.create({
         title,
-        description,
+        content,
         owner: user._id,
         status: status || "active",
         image
@@ -72,9 +74,12 @@ const getPost = asyncHandler(async (req, res) => {
 })
 
 const updatePost = asyncHandler(async (req, res) => {
-    const title = req.body?.title
-    const description = req.body?.description
-    const status = req.body?.status
+    const { title, content, status } = req.body
+
+    if (!title || !content) {
+        throw new ApiError(400, "At least one field is required")
+    }
+
     const { postId } = req.params
 
     if (!postId) {
@@ -86,12 +91,16 @@ const updatePost = asyncHandler(async (req, res) => {
         {
             $set: {
                 title,
-                description,
+                content,
                 status
             }
         },
         { new: true }
-    )
+    ).populate("owner", "username")
+
+    if (!post) {
+        throw new ApiError(404, "post does not found")
+    }
 
     return res.status(200)
         .json(
@@ -109,10 +118,22 @@ const getUserAllPost = asyncHandler(async (req, res) => {
         throw new ApiError(400, "user id is required")
     }
 
+    const user = await User.findById(userId)
+
+    if (!user) {
+        throw new ApiError(404, "User does not exist")
+    }
+
+    const { page = 1, limit = 3 } = req.query
+
+    const skip = parseInt(limit) * (parseInt(page) - 1)
+
+
+
     const posts = await Post.aggregate([
         {
             $match: {
-                owner: new mongoose.Types.ObjectId(userId)
+                owner: new mongoose.Types.ObjectId(user._id)
             }
         },
         {
@@ -121,6 +142,21 @@ const getUserAllPost = asyncHandler(async (req, res) => {
                 localField: "_id",
                 foreignField: "post",
                 as: "likes"
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "post",
+                as: "isUserLiked",
+                pipeline: [
+                    {
+                        $match: {
+                            likedBy: new mongoose.Types.ObjectId(user._id)
+                        }
+                    }
+                ]
             }
         },
         {
@@ -138,19 +174,46 @@ const getUserAllPost = asyncHandler(async (req, res) => {
                 },
                 commentsCount: {
                     $size: { $ifNull: ["$comments", []] }
-                }
+                },
+                isLiked: {
+                    $cond: {
+                        if: {
+                            $gte: [
+                                {
+                                    $first: "$isUserLiked"
+                                },
+                                1
+                            ]
+                        },
+                        then: true,
+                        else: false
+                    }
+                },
             }
         },
         {
             $project: {
+                isLiked: 1,
+                owner: 1,
                 title: 1,
-                description: 1,
+                content: 1,
                 image: 1,
                 status: 1,
                 likesCount: 1,
                 commentsCount: 1
             }
-        }
+        },
+        {
+            $sort: {
+                title: 1
+            },
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: parseInt(limit)
+        },
     ])
 
     return res.status(200)
@@ -258,7 +321,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
         {
             $project: {
                 title: 1,
-                description: 1,
+                content: 1,
                 image: 1,
                 status: 1,
                 owner: 1,
@@ -280,10 +343,6 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
     ])
 
 
-    if (!posts.length) {
-        throw new ApiError(404, "user does not following any users")
-    }
-
     return res.status(200)
         .json(
             new ApiResponse(200, posts, "followings user posts found successfully")
@@ -292,7 +351,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
 
 const getAllPosts = asyncHandler(async (req, res) => {
 
-    const { page = 1, limit = 5 } = req.query
+    const { page = 1, limit = 3 } = req.query
 
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
@@ -363,10 +422,20 @@ const getAllPosts = asyncHandler(async (req, res) => {
                     $first: "$user"
                 },
                 likesCount: {
-                    $size: { $ifNull: ["$likes", []] }
+                    $size: {
+                        $ifNull: [
+                            "$likes",
+                            []
+                        ]
+                    }
                 },
                 commentsCount: {
-                    $size: { $ifNull: ["$comments", []] }
+                    $size: {
+                        $ifNull: [
+                            "$comments",
+                            []
+                        ]
+                    }
                 },
                 isLike: {
                     $cond: {
@@ -387,7 +456,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
         {
             $project: {
                 title: 1,
-                description: 1,
+                content: 1,
                 image: 1,
                 status: 1,
                 owner: 1,
@@ -429,8 +498,8 @@ const deletePost = asyncHandler(async (req, res) => {
         throw new ApiError(404, "post not found")
     }
 
-    await Like.findOneAndDelete({post: post._id})
-    await Comment.findOneAndDelete({post: post._id})
+    await Like.findOneAndDelete({ post: post._id })
+    await Comment.findOneAndDelete({ post: post._id })
     await Post.findByIdAndDelete(post._id)
 
     //return

@@ -13,7 +13,7 @@ import { upload } from "../middlewares/multer.js";
 const router = Router()
 
 router.route('/add-post').post(verifyJwt, upload.single('post'), createPost)
-router.route('/update-post/:postId').put(verifyJwt , updatePost)
+router.route('/update-posts/:postId').patch(verifyJwt , updatePost)
 router.route('/get-posts/:postId').get(verifyJwt , getPost)
 router.route('/get-user-all-posts/:userId').get(verifyJwt , getUserAllPost)
 router.route('/get-followings-user-posts').get(verifyJwt , getFollowingsUserPost)

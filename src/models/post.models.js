@@ -6,28 +6,25 @@ const postShema = new Schema(
         title: {
             type: String,
             required: true,
-            min: [15 , 'maximum 15 charecter']
+            min: [15, 'maximum 15 charecter']
         },
-        description: {
+        content: {
             type: String,
             reuqired: true
         },
         owner: {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"User"
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
         },
         image: {
             type: String,
-            required: true
         },
         status: {
-            type:String,
-            // enum: ['active' , 'inactive'],
-            required: true,
-            default: 'active'
+            type: String,
+            enum: ["active", "inactive"]
         }
-    } ,{timestamps: true})
+    }, { timestamps: true })
 
-    postShema.plugin(mongooseAggregatePaginate)
+postShema.plugin(mongooseAggregatePaginate)
 
-    export const Post = mongoose.model("Post" , postShema)
+export const Post = mongoose.model("Post", postShema)
