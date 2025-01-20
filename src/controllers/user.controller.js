@@ -2,7 +2,7 @@ import { User } from '../models/user.model.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
-import { uploadCloudinary } from '../utils/Cloudinary.js'
+import { destroyCloudinary, uploadCloudinary } from '../utils/Cloudinary.js'
 import jwt from 'jsonwebtoken'
 import { transporter } from '../utils/mail.js'
 import { Follows } from '../models/followersFollowings.modles.js'
@@ -22,6 +22,7 @@ const sendMail = async (username, email, token) => {
                 </div>`
         }
 
+        // send mail
         transporter.sendMail(mailOPtions, (error, info) => {
             if (error) {
                 throw new ApiError(500, "Error while send mail")
@@ -41,6 +42,7 @@ const generateAccessRefreshToken = async (userId) => {
         const user = await User.findById(userId)
         const AccessToken = user.generateAceessToken()
         const RefreshToken = user.generateRefreshToken()
+        // save refreshToke to database
         user.refreshToken = RefreshToken
         await user.save({ validateBeforeSave: true })
 
@@ -63,8 +65,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (isUserExsist) {
         throw new ApiError(400, "User with this email and username already exists")
-    }    
-    
+    }
+
 
     const avatarLocalPath = req.files?.avatar?.[0].path;
     const coverImageLocalPath = req.files?.coverImage?.[0].path;
@@ -73,6 +75,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar is required")
     }
+
     const avatar = await uploadCloudinary(avatarLocalPath)
     const coverImage = coverImageLocalPath && await uploadCloudinary(coverImageLocalPath)
 
@@ -104,14 +107,14 @@ const registerUser = asyncHandler(async (req, res) => {
 })
 
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, password } = req.body        
+    const { email, password } = req.body
 
     if (!email) {
         throw new ApiError(400, "username or email is require")
     }
 
 
-    const user = await User.findOne({email})
+    const user = await User.findOne({ email })
 
     if (!user) {
         throw new ApiError(400, "User does not exists")
@@ -140,6 +143,7 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     return res.status(200)
+        // set cookie 
         .cookie('accessToken', AccessToken, option)
         .cookie('refreshToken', RefreshToken, option)
         .json(
@@ -167,6 +171,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
 
     return res.status(200)
+        // clear cooki
         .clearCookie('accessToken', option)
         .clearCookie('refreshToken', option)
         .json(
@@ -176,6 +181,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
+
+    // get token
     const token = req.cookies?.refreshToken || req.header('Authorized')
 
     const decodedToken = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET)
@@ -190,6 +197,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid refreshToken ")
     }
 
+    // refresh access token
     const { AccessToken, RefreshToken } = await generateAccessRefreshToken(user._id)
 
     const option = {
@@ -198,6 +206,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 
     return res.status(200)
+        // set cookie
         .cookie('accessToekn', AccessToken, option)
         .cookie('refreshToken', RefreshToken, option)
         .json(
@@ -242,11 +251,12 @@ const forgetPassword = asyncHandler(async (req, res) => {
         }
     )
 
+    // send main to user
     sendMail(user.username, email, randomeString)
 
     return res.status(200)
         .json(
-            new ApiResponse(200, {}, "check your inbox of mail.")
+            new ApiResponse(200, {}, "mail send successfully.")
         )
 
 
@@ -262,7 +272,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     }
 
     if (password !== conformPassword) {
-        throw new ApiError(400, "Conform Password is not same")
+        throw new ApiError(400, "Conform password is not same")
     }
 
     const decodedInfo = jwt.verify(token, process.env.RANDOME_STRING_GENERATE)
@@ -345,9 +355,12 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar is required")
-    }    
+    }
 
     const avatar = await uploadCloudinary(avatarLocalPath)
+
+    // delete avatar from cloudinary
+    await destroyCloudinary(req.user.avatar)
 
     if (!avatar) {
         throw new ApiError(400, "error while uploading avatar")
@@ -376,6 +389,9 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
     const coverImage = await uploadCloudinary(coverImageLocalPath)
 
+    // delete coverImage form cloudinary
+    req.user?.coverImage && await destroyCloudinary(req.user.coverImage)
+
     if (!coverImage) {
         throw new ApiError(400, "error while updating cover image")
     }
@@ -397,7 +413,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 const searchUser = asyncHandler(async (req, res) => {
 
-    const {username} = req.query
+    const { username } = req.query
 
     if (!username) {
         throw new ApiError(400, "username is required")
@@ -430,6 +446,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get  user following
             $lookup: {
                 from: "follows",
                 foreignField: "followers",
@@ -438,6 +455,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get user followers
             $lookup: {
                 from: "follows",
                 foreignField: "followings",
@@ -447,12 +465,20 @@ const getUserProfile = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+
+                // count user following if null then return epmty array
                 followingsCount: {
                     $size: { $ifNull: ["$followings", []] }
                 },
+
+                // count user followers if null then return epmty array
                 followersCount: {
                     $size: { $ifNull: ["$followers", []] }
                 },
+
+                // check current user follow this profile 
+                // if current user id exsit to $followers.followers document then isFollowed true
+                // otherwise false
                 isFollowed: {
                     $cond: {
                         if: { $in: [req.user?._id, "$followers.followers"] },
@@ -471,7 +497,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
                 coverImage: 1,
                 followingsCount: 1,
                 followersCount: 1,
-                isFollowed: 1
+                isFollowed: 1,
+                createdAt: 1
 
 
             }
@@ -496,14 +523,15 @@ const getAllUsers = asyncHandler(async (req, res) => {
     // all users not only login user
 
     const userFollowings = await Follows.find({ followers: req.user._id })
-    userFollowings.push({followings: req.user._id})
+    userFollowings.push({ followings: req.user._id })
 
-    const followingIds = userFollowings.map((follow) => follow.followings)    
+    const followingIds = userFollowings.map((follow) => follow.followings)
 
     let users;
 
     if (userFollowings.length > 0) {
-        users = await User.find({ _id: { $nin: followingIds} }).select("-password")
+        // find those user which is not in followingIds
+        users = await User.find({ _id: { $nin: followingIds } }).select("-password")
     } else {
         users = await User.find({ _id: { $nin: new mongoose.Types.ObjectId(req.user._id) } }).select("-password")
     }

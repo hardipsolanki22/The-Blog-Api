@@ -19,12 +19,14 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
         throw new ApiError(404, "user not found")
     }
 
+    // check current user follow to this user
     const userHasAlreadyFollow = await Follows.findOne({
         $and: [{ followers: req.user?._id }, { followings: userId }]
     })
 
     if (!userHasAlreadyFollow) {
 
+        // if current user is not following then create following document
         await Follows.create({
             followers: req.user?._id,
             followings: userId
@@ -36,6 +38,7 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
             )
     } else {
 
+        // if current user is following then delete following document
         await Follows.findOneAndDelete({
             $and: [{ followers: req.user._id }, { followings: userId }]
         })
@@ -49,10 +52,11 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
 })
 
 const getUserFollowigns = asyncHandler(async (req, res) => {
-    
+
     const { userId } = req.params
     const { page = 1, limit = 10 } = req.query
 
+    // pagination
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
     if (!userId) {
@@ -65,6 +69,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get following user details (username ...etc)
             $lookup: {
                 from: "users",
                 localField: "followings",
@@ -78,6 +83,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
                         }
                     },
                     {
+                        // get following user followers
                         $lookup: {
                             from: "follows",
                             localField: "_id",
@@ -87,6 +93,9 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
                     },
                     {
                         $addFields: {
+                            // check current user follow this following user
+                            // if current user id is exist to this $userFollowers.followers document 
+                            // then isFollwed is true otherwise false
                             isFollowed: {
                                 $cond: {
                                     if: { $in: [req.user._id, "$userFollowers.followers"] },
@@ -106,6 +115,8 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+
+                // get first valeu of $followDetails document
                 followDetails: {
                     $first: "$followDetails"
                 }
@@ -117,6 +128,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
                 isFollowed: 1
             }
         },
+        // pagination
         {
             $sort: {
                 createdAt: -1
@@ -141,7 +153,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
 const getUserFollowers = asyncHandler(async (req, res) => {
 
     const { userId } = req.params
-    const {page = 1, limit = 10} = req.query    
+    const { page = 1, limit = 10 } = req.query
 
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
@@ -155,6 +167,7 @@ const getUserFollowers = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get followers user details (username ...etc)
             $lookup: {
                 from: "users",
                 localField: "followers",
@@ -168,6 +181,7 @@ const getUserFollowers = asyncHandler(async (req, res) => {
                         }
                     },
                     {
+                        // get follower of above followers user
                         $lookup: {
                             from: "follows",
                             localField: "_id",
@@ -177,9 +191,13 @@ const getUserFollowers = asyncHandler(async (req, res) => {
                     },
                     {
                         $addFields: {
+                            // check current user follow this follower user
+                            // if current user id is exist to this $userFollowers.followers document 
+                            // then isFollwed is true otherwise false
+
                             isFollowed: {
                                 $cond: {
-                                    if: { $in: [req.user._id, "$userFollowers.followers"]},
+                                    if: { $in: [req.user._id, "$userFollowers.followers"] },
                                     then: true,
                                     else: false
                                 }
@@ -188,7 +206,7 @@ const getUserFollowers = asyncHandler(async (req, res) => {
                     },
                     {
                         $project: {
-                            userFollowers: 0   
+                            userFollowers: 0
                         }
                     }
                 ]
@@ -196,17 +214,21 @@ const getUserFollowers = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+
+                // get first valeu of $followDetails document
                 followDetails: {
                     $first: "$followDetails"
                 }
             }
         },
-            {
+        {
             $project: {
                 followDetails: 1,
                 isFollowed: 1
             }
         },
+
+        // pagination
         {
             $sort: {
                 createdAt: -1

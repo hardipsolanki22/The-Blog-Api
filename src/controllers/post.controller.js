@@ -2,7 +2,7 @@ import { Post } from '../models/post.models.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
-import { uploadCloudinary } from '../utils/Cloudinary.js'
+import { destroyCloudinary, uploadCloudinary } from '../utils/Cloudinary.js'
 import { User } from '../models/user.model.js'
 import mongoose from 'mongoose'
 import { Follows } from '../models/followersFollowings.modles.js'
@@ -12,10 +12,10 @@ import { Comment } from '../models/comment.model.js'
 
 
 const createPost = asyncHandler(async (req, res) => {
-    const { title, content, status = "active" } = req.body
+    const { title, content, status } = req.body
 
 
-    if ([title, content].some((filed) => filed?.trim() === '')) {
+    if ([title, content, status].some((filed) => filed?.trim() === '')) {
         throw new ApiError(400, "all filed are require")
     }
 
@@ -33,6 +33,7 @@ const createPost = asyncHandler(async (req, res) => {
 
     const user = await User.findById(req.user._id)
 
+    // create post document
     const createPost = await Post.create({
         title,
         content,
@@ -61,7 +62,8 @@ const getPost = asyncHandler(async (req, res) => {
         throw new ApiError(400, "post id is  require")
     }
 
-    const post = await Post.findById(postId)
+    // get post and populate owner filed to get username
+    const post = await Post.findById(postId).populate("owner", "username")
 
     if (!post) {
         throw new ApiError(404, "post not found")
@@ -86,6 +88,7 @@ const updatePost = asyncHandler(async (req, res) => {
         throw new ApiError(400, "post id is require")
     }
 
+    // update post and populate owner filed to get username
     const post = await Post.findByIdAndUpdate(
         postId,
         {
@@ -126,6 +129,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
 
     const { page = 1, limit = 3 } = req.query
 
+    // pagination 
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
 
@@ -137,6 +141,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get likes on post
             $lookup: {
                 from: "likes",
                 localField: "_id",
@@ -145,6 +150,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get current user like on comment
             $lookup: {
                 from: "likes",
                 localField: "_id",
@@ -160,6 +166,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get comments on post
             $lookup: {
                 from: "comments",
                 localField: "_id",
@@ -169,12 +176,17 @@ const getUserAllPost = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+
+                // count post likes if null then retuen []
                 likesCount: {
                     $size: "$likes"
                 },
+
+                // count post comments if null then retuen []
                 commentsCount: {
                     $size: { $ifNull: ["$comments", []] }
                 },
+                // if $isUserLiked document greater than or equal to 1 then isLiked is true otherwise false
                 isLiked: {
                     $cond: {
                         if: {
@@ -203,6 +215,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
                 commentsCount: 1
             }
         },
+        // paginarion
         {
             $sort: {
                 title: 1
@@ -229,11 +242,14 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
 
     const { page = 1, limit = 5 } = req.query
 
+    // pagination
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
+    // get current user following
     const followings = await Follows.find({ followers: req.user._id })
         .select("-followers")
 
+    // get perticular id in array
     const followingIds = followings?.map(follow => follow.followings)
 
 
@@ -245,6 +261,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get owner details (username and avatar)
             $lookup: {
                 from: "users",
                 localField: "owner",
@@ -261,6 +278,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
             },
         },
         {
+            // get post likes
             $lookup: {
                 from: "likes",
                 localField: "_id",
@@ -269,6 +287,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
             },
         },
         {
+            // get current user like on post
             $lookup: {
                 from: "likes",
                 localField: "_id",
@@ -284,6 +303,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
             },
         },
         {
+            // get comments on post
             $lookup: {
                 from: "comments",
                 localField: "_id",
@@ -293,15 +313,23 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+
+                // get fiest value of $user document
                 owner: {
                     $first: "$user"
                 },
+
+                // count post likes if null then retuen []
                 likesCount: {
                     $size: { $ifNull: ["$likes", []] }
                 },
+
+                // count post comment if null then retuen []
                 commentsCount: {
                     $size: { $ifNull: ["$comments", []] }
                 },
+
+                // if $isLike document greater than or equal to 1 then isLike is true otherwise false
                 isLike: {
                     $cond: {
                         if: {
@@ -327,9 +355,11 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
                 owner: 1,
                 likesCount: 1,
                 commentsCount: 1,
-                isLike: 1
+                isLike: 1,
+                createdAt: 1
             }
         },
+        // pagination
         {
             $sort: { title: 1 }
         },
@@ -353,11 +383,14 @@ const getAllPosts = asyncHandler(async (req, res) => {
 
     const { page = 1, limit = 3 } = req.query
 
+    // pagination
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
+    // get current user following
     const followings = await Follows.find({ followers: req.user._id }).
         select('followings');
 
+    // get perticular id in array
     const followingIds = followings.map(follow => follow.followings);
 
     const posts = await Post.aggregate([
@@ -369,6 +402,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get likes on post
             $lookup: {
                 from: "likes",
                 localField: "_id",
@@ -377,6 +411,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get current user like in post
             $lookup: {
                 from: "likes",
                 localField: "_id",
@@ -392,6 +427,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get post comment
             $lookup: {
                 from: "comments",
                 localField: "_id",
@@ -400,6 +436,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get owner details (avatar and username)
             $lookup: {
                 from: "users",
                 localField: "owner",
@@ -418,9 +455,13 @@ const getAllPosts = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+
+                // get first value of $user document
                 owner: {
                     $first: "$user"
                 },
+
+                // count post likes if null then retuen empty array
                 likesCount: {
                     $size: {
                         $ifNull: [
@@ -429,6 +470,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
                         ]
                     }
                 },
+                // count post comments if null then retuen empty array
                 commentsCount: {
                     $size: {
                         $ifNull: [
@@ -437,6 +479,8 @@ const getAllPosts = asyncHandler(async (req, res) => {
                         ]
                     }
                 },
+
+                // if $isLiked document greater than or equal to 1 then isLike is true otherwise false
                 isLike: {
                     $cond: {
                         if: {
@@ -462,9 +506,12 @@ const getAllPosts = asyncHandler(async (req, res) => {
                 owner: 1,
                 likesCount: 1,
                 commentsCount: 1,
-                isLike: 1
+                isLike: 1,
+                createdAt: 1
+
             }
         },
+        // pagination
         {
             $sort: {
                 title: 1
@@ -498,11 +545,17 @@ const deletePost = asyncHandler(async (req, res) => {
         throw new ApiError(404, "post not found")
     }
 
-    await Like.findOneAndDelete({ post: post._id })
-    await Comment.findOneAndDelete({ post: post._id })
-    await Post.findByIdAndDelete(post._id)
+    // delete post like 
+    await Like.deleteMany({ post: post._id })
 
-    //return
+    // delete post comment
+    await Comment.deleteMany({ post: post._id })
+
+    // delete image from cloudinary
+    await destroyCloudinary(post.image)
+
+    // delete post
+    await Post.findByIdAndDelete(post._id)
 
     res.status(200)
         .json(

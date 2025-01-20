@@ -4,10 +4,11 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { Comment } from '../models/comment.model.js';
 import mongoose from 'mongoose';
+import { Like } from '../models/like.model.js';
 
 const createComment = asyncHandler(async (req, res) => {
-    const { content} = req.body;
-    const {postId} = req.params;
+    const { content } = req.body;
+    const { postId } = req.params;
 
     if (!(content || postId)) {
         throw new ApiError(400, "All filed are require")
@@ -19,6 +20,7 @@ const createComment = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Post not found")
     }
 
+    // create comment document
     const createComment = await Comment.create({
         content,
         post: post._id,
@@ -40,6 +42,7 @@ const createComment = asyncHandler(async (req, res) => {
 const getPostComment = asyncHandler(async (req, res) => {
     const { postId } = req.params
 
+    // pagination
     const { page = 1, limit = 10 } = req.query
 
     if (!postId) {
@@ -52,6 +55,7 @@ const getPostComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "post not found")
     }
 
+    // get comment likes and dislikes
     const comments = await Comment.aggregate([
         {
             $match: {
@@ -59,11 +63,13 @@ const getPostComment = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get commet likes
             $lookup: {
                 from: "likes",
                 localField: "_id",
                 foreignField: "comment",
                 as: "commentLikes",
+                // pipline for get only likes on comment
                 pipeline: [
                     {
                         $match: {
@@ -74,11 +80,13 @@ const getPostComment = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get commet dislikes
             $lookup: {
                 from: "likes",
                 localField: "_id",
                 foreignField: "comment",
                 as: "commentDislikes",
+                // pipline for get only dislikes on comment
                 pipeline: [
                     {
                         $match: {
@@ -94,6 +102,7 @@ const getPostComment = asyncHandler(async (req, res) => {
                 localField: "_id",
                 foreignField: "comment",
                 as: "isCommentLikes",
+                // pipline for match only LIKE and current user id in document
                 pipeline: [
                     {
                         $match: {
@@ -110,6 +119,8 @@ const getPostComment = asyncHandler(async (req, res) => {
                 localField: "_id",
                 foreignField: "comment",
                 as: "isCommentDislikes",
+                // pipline for match only DISLIKE and current user id in document
+
                 pipeline: [
                     {
                         $match: {
@@ -121,6 +132,7 @@ const getPostComment = asyncHandler(async (req, res) => {
             }
         },
         {
+            // pipline for get owner details (avatar and username)
             $lookup: {
                 from: "users",
                 localField: "owner",
@@ -138,17 +150,22 @@ const getPostComment = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+
+                // get fisrt value  of $commentOwner document
                 owner: {
                     $first: "$commentOwner"
                 },
+
+                // count comment likes if likes is null then return empty arra
                 commentlikesCount: {
                     $size: { $ifNull: ["$commentLikes", []] }
                 },
 
+                // count comment likes if likes is null then return empty arra
                 commentDislikesCount: {
                     $size: { $ifNull: ["$isCommentDislikes", []] }
                 },
-
+                // if isCommentLikes document greater than or equal to 1 then isLikes is true otherwise false
                 isCommentLike: {
                     $cond: {
                         if: {
@@ -163,7 +180,7 @@ const getPostComment = asyncHandler(async (req, res) => {
                         else: false
                     }
                 },
-
+                // if isCommentLikes document greater than or equal to 1 then isLikes is true otherwise false
                 isCommentDisLike: {
                     $cond: {
                         if: {
@@ -187,10 +204,12 @@ const getPostComment = asyncHandler(async (req, res) => {
                 commentlikesCount: 1,
                 commentDislikesCount: 1,
                 isCommentLike: 1,
-                isCommentDisLike: 1
+                isCommentDisLike: 1,
+                createdAt: 1
 
             }
         },
+        // pagination
         {
             $sort: {
                 content: 1
@@ -227,6 +246,7 @@ const updateComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "content is ruquire")
     }
 
+    // update comment document
     const comment = await Comment.findByIdAndUpdate(id,
         {
             $set: {
@@ -251,11 +271,21 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "comment id is require")
     }
 
-    const comment = await Comment.findByIdAndDelete(id)
+    const comment = await Comment.findById(id)
 
+    if (!comment) {
+        throw new ApiError(404, "Comment not found")
+    }
+
+    //delete comment likes and disliked
+    await Like.deleteMany({comment: comment._id})
+
+    // delete comment
+     await Comment.findByIdAndDelete(comment._id)
+     
     return res.status(200)
         .json(
-            new ApiResponse(200, comment, "comment delete successfully")
+            new ApiResponse(200, {}, "comment delete successfully")
         )
 })
 

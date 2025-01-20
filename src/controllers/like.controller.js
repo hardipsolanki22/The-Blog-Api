@@ -20,12 +20,14 @@ const likeDislikePost = asyncHandler(async (req, res) => {
     if (!post) {
         throw new ApiError(404, "post not found")
     }
+    // check if current user like exsit
     const userAlreadyLiked = await Like.findOne({
         $and: [{ post: post._id }, { likedBy: req.user?._id }]
     })
 
     if (!userAlreadyLiked) {
 
+        // if not exsit then create post like document
         await Like.create({
             post: post._id,
             likedBy: req.user?._id
@@ -36,7 +38,7 @@ const likeDislikePost = asyncHandler(async (req, res) => {
                 new ApiResponse(200, { like: true }, "Like Successfully")
             )
     } else {
-
+        // if exsit then delete post like document
         await Like.findOneAndDelete({
             $and: [{ post: post._id }, { likedBy: req.user._id }]
         })
@@ -63,8 +65,8 @@ const getPostLikes = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Post not found")
     }
 
+    // pagination
     const skip = parseInt(limit) * (parseInt(page) - 1)
-
 
     const currentUserId = req.user._id
 
@@ -75,6 +77,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
             }
         },
         {
+            // get likedBy user avatar and username
             $lookup: {
                 from: "users",
                 localField: "likedBy",
@@ -87,6 +90,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
                             avatar: 1
                         }
                     },
+                    // get likedBy user followers
                     {
                         $lookup: {
                             from: "follows",
@@ -97,6 +101,9 @@ const getPostLikes = asyncHandler(async (req, res) => {
                     },
                     {
                         $addFields: {
+                            // check current user follow this likedBy user 
+                            // if current user id exsit to $userFollowers.followers document then isFollowed true
+                            // otherwise false
                             isFollowed: {
                                 $cond: {
                                     if: { $in: [currentUserId, "$userFollowers.followers"] },
@@ -116,6 +123,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
+                // get first value of $likedByUsers document
                 likedBy: {
                     $first: "$likedByUsers"
                 }
@@ -127,6 +135,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
                 likedBy: 1,
             }
         },
+        // pagination
         {
             $sort: {
                 createdAt: -1
@@ -156,9 +165,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
     // if comment like is not exist then create new comment
 
     const { commentId } = req.params
-
     const like = req.query.type;
-    console.log(`likeQuery: ${like}`);
 
     if (!commentId) {
         throw new ApiError(400, "comment id is require")
@@ -173,18 +180,21 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
 
     if (like === "LIKE") {
 
+        // check current user like on comment
         const userAlreadyLiked = await Like.findOne({
             $and: [{ like: "LIKE" }, { comment: comment._id }, { likedBy: req.user._id }]
         })
 
         if (!userAlreadyLiked) {
 
+            // if like is exist then create like document 
             await Like.create({
                 like,
                 comment: comment._id,
                 likedBy: req.user._id
             })
 
+            //if dislike is exsit on comment then delete dislike
             await Like.deleteOne({
                 like: "DISLIKE",
                 comment: comment._id,
@@ -203,7 +213,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
                 )
 
         } else {
-
+            // if like is exist then delete like document
             await Like.findOneAndDelete({
                 $and: [{ like: "LIKE" }, { comment: comment._id }, { likedBy: req.user._id }]
             })
@@ -221,18 +231,19 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
         }
     } else if (like === "DISLIKE") {
 
+        // check current user dislike exist
         const userAlreadyLiked = await Like.findOne({
             $and: [{ like: "DISLIKE" }, { comment: comment._id }, { likedBy: req.user._id },]
         })
 
         if (!userAlreadyLiked) {
-
+            // if  dislike is not exist then  create dislike document
             await Like.create({
                 like,
                 comment: comment._id,
                 likedBy: req.user._id
             })
-
+            // if like is exist then delete like document on comment
             await Like.deleteOne({
                 like: "LIKE",
                 comment: comment._id,
@@ -245,7 +256,7 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
                 )
 
         } else {
-
+            // if dislike is exist them delete dislike document
             await Like.deleteOne({
                 $and: [{ like: "DISLIKE" }, { comment: comment._id }, { likedBy: req.user._id }]
             })
@@ -260,53 +271,6 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalide Like Type")
     }
 })
-
-const getCommentLikeDislikeCount = asyncHandler(async (req, res) => {
-    const { commentId } = req.params;
-
-    if (!commentId) {
-        throw new ApiError(400, "comment id is required");
-    }
-
-    const comment = await Comment.findById(commentId);
-
-    if (!comment) {
-        throw new ApiError(404, "Comment not found");
-    }
-
-    const likeDislikeCount = await Like.aggregate([
-        {
-            $match: {
-                comment: new mongoose.Types.ObjectId(comment._id)
-            }
-        },
-        {
-            $group: {
-                _id: "$comment",
-                totalLikes: {
-                    $sum: {
-                        $cond: [{ $eq: ["$like", "LIKE"] }, 1, 0]
-                    }
-                },
-                totalDislikes: {
-                    $sum: {
-                        $cond: [{ $eq: ["$like", "LIKE"] }, 1, 0]
-                    }
-                }
-            }
-        }
-    ]);
-
-    if (likeDislikeCount.length === 0) {
-        return res.status(200).json(
-            new ApiResponse(200, { totalLikes: 0, totalDislikes: 0 }, "No likes or dislikes found")
-        );
-    }
-
-    return res.status(200).json(
-        new ApiResponse(200, likeDislikeCount[0], "Comment like and dislike count found successfully")
-    );
-});
 
 const likeDislikeTweet = asyncHandler(async (req, res) => {
 
@@ -325,6 +289,7 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
 
     if (type === 'LIKE') {
 
+        // check cuttent user like is exist on tweet
         const isTweetLike = await Like.findOne({
             tweet: tweet._id,
             like: 'LIKE',
@@ -333,12 +298,14 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
 
         if (!isTweetLike) {
 
+            // if like is not exist then create like document
             await Like.create({
                 like: 'LIKE',
                 tweet: tweet._id,
                 likedBy: req.user._id
             })
 
+            // if dislike is exist on tweet then delete like document
             await Like.findOneAndDelete({
                 like: 'DISLIKE',
                 tweet: tweet._id,
@@ -357,6 +324,7 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
                 )
         } else {
 
+            // if like is exist then delete like document
             await Like.findOneAndDelete({
                 like: 'LIKE',
                 tweet: tweet._id,
@@ -378,6 +346,7 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
 
     } else if (type === 'DISLIKE') {
 
+        // check current user dislike on tweet
         const isTweetDisLike = await Like.findOne({
             tweet: tweet._id,
             like: 'DISLIKE',
@@ -386,12 +355,14 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
 
         if (!isTweetDisLike) {
 
+            // if dislike is not exist then create dislike document 
             await Like.create({
                 like: 'DISLIKE',
                 tweet: tweet._id,
                 likedBy: req.user._id
             })
 
+            // if like is exist then delete like document
             await Like.findOneAndDelete({
                 like: 'LIKE',
                 tweet: tweet._id,
@@ -410,6 +381,7 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
                 )
         } else {
 
+            // if dislike is exist then delete dislike on tweet
             await Like.findOneAndDelete({
                 like: 'DISLIKE',
                 tweet: tweet._id,
@@ -439,7 +411,6 @@ export {
     likeDislikePost,
     likeDislikeComment,
     getPostLikes,
-    getCommentLikeDislikeCount,
     likeDislikeTweet
 };
 
