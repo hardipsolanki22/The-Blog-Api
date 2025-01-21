@@ -2,7 +2,7 @@ import {Router} from 'express'
 import { getUserFollowers,
         followUnfollowUser,
         getUserFollowigns,
-} from '../controllers/subscription.controller.js'
+} from '../controllers/follows.controller.js'
 import { verifyJwt } from '../middlewares/auth.js'
 
 const router = Router()

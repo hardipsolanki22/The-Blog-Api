@@ -48,9 +48,9 @@ const createPost = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Unauthorized requiest")
     }
 
-    return res.status(200)
+    return res.status(201)
         .json(
-            new ApiResponse(200, post, "create post successfully")
+            new ApiResponse(201, post, "create post successfully")
         )
 
 })
@@ -159,7 +159,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
                 pipeline: [
                     {
                         $match: {
-                            likedBy: new mongoose.Types.ObjectId(user._id)
+                            likedBy: new mongoose.Types.ObjectId(req.user._id)
                         }
                     }
                 ]
@@ -205,6 +205,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
         },
         {
             $project: {
+                isUserLiked: 1,
                 isLiked: 1,
                 owner: 1,
                 title: 1,

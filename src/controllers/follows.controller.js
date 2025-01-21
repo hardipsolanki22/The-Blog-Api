@@ -32,9 +32,9 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
             followings: userId
         })
 
-        return res.status(200)
+        return res.status(201)
             .json(
-                new ApiResponse(200, { following: true }, "Following Successfully")
+                new ApiResponse(201, { following: true }, "Following Successfully")
             )
     } else {
 

@@ -33,9 +33,9 @@ const likeDislikePost = asyncHandler(async (req, res) => {
             likedBy: req.user?._id
         })
 
-        return res.status(200)
+        return res.status(201)
             .json(
-                new ApiResponse(200, { like: true }, "Like Successfully")
+                new ApiResponse(201, { like: true }, "Like Successfully")
             )
     } else {
         // if exsit then delete post like document
@@ -201,10 +201,10 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
                 likedBy: req.user._id
             })
 
-            return res.status(200)
+            return res.status(201)
                 .json(
                     new ApiResponse(
-                        200,
+                        201,
                         {
                             commentLike: true
                         },
@@ -250,9 +250,9 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
                 likedBy: req.user._id
             })
 
-            return res.status(200)
+            return res.status(201)
                 .json(
-                    new ApiResponse(200, { commentDisLike: true }, "Like Successfully")
+                    new ApiResponse(201, { commentDisLike: true }, "Like Successfully")
                 )
 
         } else {
@@ -312,10 +312,10 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
                 likedBy: req.user._id
             })
 
-            return res.status(200)
+            return res.status(201)
                 .json(
                     new ApiResponse(
-                        200,
+                        201,
                         {
                             tweetLike: true
                         },
@@ -369,10 +369,10 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
                 likedBy: req.user._id
             })
 
-            return res.status(200)
+            return res.status(201)
                 .json(
                     new ApiResponse(
-                        200,
+                        201,
                         {
                             tweetDisLike: true
                         },

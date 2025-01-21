@@ -24,9 +24,9 @@ const createTweet = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Internal server error")
     }
 
-    return res.status(200)
+    return res.status(201)
         .json(
-            new ApiResponse(200, tweet, "Tweet create successfully")
+            new ApiResponse(201, tweet, "Tweet create successfully")
         )
 
 })
