@@ -8,8 +8,8 @@ dotenv.config({
 
 connectDB().then(() => {
 
-        app.listen(process.env.POST , () => {
-            console.log(`Application is runing on port ${process.env.POST}`);
+        app.listen(process.env.PORT , () => {
+            console.log(`Application is runing on port ${process.env.PORT}`);
             
         })
 
