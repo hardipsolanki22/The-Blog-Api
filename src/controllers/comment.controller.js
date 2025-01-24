@@ -10,7 +10,7 @@ const createComment = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const { postId } = req.params;
 
-    if (!(content || postId)) {
+    if (!content || !postId) {
         throw new ApiError(400, "All filed are require")
     }
 

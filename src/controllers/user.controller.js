@@ -86,7 +86,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const createUser = await User.create({
         name: `${name.replaceAll("@", "")}`,
-        username: username.toLowerCase(),
+        username: username.toLowerCase().replaceAll(" ", ""),
         email,
         password,
         avatar,
@@ -330,7 +330,7 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     const { name, username, email } = req.body
 
     if (!name || !username || !email) {
-        throw new ApiError(400, "at least one field is required")
+        throw new ApiError(400, "At least one field is required")
     }
 
     const user = await User.findByIdAndUpdate(req.user._id,

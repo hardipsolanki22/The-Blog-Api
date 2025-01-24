@@ -12,10 +12,9 @@ import { Comment } from '../models/comment.model.js'
 
 
 const createPost = asyncHandler(async (req, res) => {
-    const { title, content, status } = req.body
+    const { title, content, status } = req.body    
 
-
-    if ([title, content, status].some((filed) => filed?.trim() === '')) {
+    if ([title, content].some((filed) => filed?.trim() === '')) {
         throw new ApiError(400, "all filed are require")
     }
 
