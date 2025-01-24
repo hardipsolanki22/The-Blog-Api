@@ -17,7 +17,7 @@ app.use(cookieParser())
 import healthcheckRoute from './routes/healthcheck.routes.js'
 import userRoute from './routes/user.routes.js'
 import postRoute from './routes/post.routes.js'
-import subscriptionRoute from './routes/follows.routes.js'
+import followsRoute from './routes/follows.routes.js'
 import likesRoute from './routes/like.routes.js'
 import commentRoute from './routes/comment.routes.js'
 import tweetRoute from './routes/tweet.routes.js'
@@ -25,7 +25,7 @@ import tweetRoute from './routes/tweet.routes.js'
 app.use('/api/v1/healthcheck', healthcheckRoute)
 app.use('/api/v1/user', userRoute)
 app.use('/api/v1/post', postRoute)
-app.use('/api/v1/subcriptions', subscriptionRoute)
+app.use('/api/v1/follows', followsRoute)
 app.use('/api/v1/like', likesRoute)
 app.use('/api/v1/comment', commentRoute)
 app.use('/api/v1/tweet',tweetRoute)
