@@ -1,16 +1,9 @@
 {
-   "version": 2,
-   "name": "theBlogApi",
-   "builds": [
-     {
-       "src": "src/index.js",
-       "use": "@vercel/node"
-     }
-   ],
-   "routes": [
-     {
-       "src": "/(.*)",
-       "dest": "src/index.js"
-     }
-   ]
- }
+  "version": 3,
+  "builds": [
+    {
+      "src": "**/*.js",
+      "use": "@vercel/node"
+    }
+  ]
+}
