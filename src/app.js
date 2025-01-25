@@ -4,7 +4,10 @@ import cookieParser from 'cookie-parser'
 
 const app = express()
 
-app.use(cors());
+app.use(cors({
+    origin: ["https://the-blog-client.vercel.app/", "http://localhost:5173"],
+    credentials: true,
+}));
 
 app.use(express.json({ limit: '50mb' }))
 
@@ -28,7 +31,7 @@ app.use('/api/v1/post', postRoute)
 app.use('/api/v1/follows', followsRoute)
 app.use('/api/v1/like', likesRoute)
 app.use('/api/v1/comment', commentRoute)
-app.use('/api/v1/tweet',tweetRoute)
+app.use('/api/v1/tweet', tweetRoute)
 
 
 export { app }
