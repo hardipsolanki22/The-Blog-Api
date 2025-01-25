@@ -27,7 +27,7 @@ const sendMail = async (username, email, token) => {
             if (error) {
                 throw new ApiError(500, "Error while send mail")
             } else {
-                console.log(`Mail has been send: `, info);
+                console.log(`Mail has been send: `,);
             }
 
         })
