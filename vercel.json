@@ -1,15 +1,39 @@
 {
   "version": 2,
   "builds": [
-      {
-          "src": "./src/index.js",
-          "use": "@vercel/node"
-      }
+    {
+      "src": "src/index.js",
+      "use": "@vercel/node"
+    }
   ],
   "routes": [
-      {
-          "src": "/(.*)",
-          "dest": "/"
-      }
+    {
+      "src": "/api/v1/healthcheck(.*)",
+      "dest": "src/routes/healthcheck.routes.js"
+    },
+    {
+      "src": "/api/v1/user(.*)",
+      "dest": "src/routes/user.routes.js"
+    },
+    {
+      "src": "/api/v1/post(.*)",
+      "dest": "src/routes/post.routes.js"
+    },
+    {
+      "src": "/api/v1/follows(.*)",
+      "dest": "src/routes/follows.routes.js"
+    },
+    {
+      "src": "/api/v1/like(.*)",
+      "dest": "src/routes/like.routes.js"
+    },
+    {
+      "src": "/api/v1/comment(.*)",
+      "dest": "src/routes/comment.routes.js"
+    },
+    {
+      "src": "/api/v1/tweet(.*)",
+      "dest": "src/routes/tweet.routes.js"
+    }
   ]
 }
