@@ -10,8 +10,12 @@ const createComment = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const { postId } = req.params;
 
-    if (!content || !postId) {
-        throw new ApiError(400, "All filed are require")
+    if (!content) {
+        throw new ApiError(400, "Content is required")
+    }
+
+    if (!postId) {
+        throw new ApiError(400, "Post id requires")
     }
 
     const post = await Post.findById(postId)
@@ -30,12 +34,12 @@ const createComment = asyncHandler(async (req, res) => {
     const comment = await Comment.findById(createComment._id)
 
     if (!comment) {
-        throw new ApiError(500, "Internal server error...")
+        throw new ApiError(500, "Internal server error while create comment")
     }
 
     return res.status(201)
         .json(
-            new ApiResponse(201, comment, "comment create successfully")
+            new ApiResponse(201, comment, "Comment Successfully")
         )
 })
 
@@ -46,13 +50,13 @@ const getPostComment = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10 } = req.query
 
     if (!postId) {
-        throw new ApiError(400, "post id is require")
+        throw new ApiError(400, "Post id required")
     }
 
     const post = await Post.findById(postId)
 
     if (!post) {
-        throw new ApiError(400, "post not found")
+        throw new ApiError(400, "Post not found")
     }
 
     // get comment likes and dislikes
@@ -226,28 +230,28 @@ const getPostComment = asyncHandler(async (req, res) => {
     if (!comments.length) {
         return res.status(200)
             .json(
-                new ApiResponse(200, {}, "no comment in this post")
+                new ApiResponse(200, {}, "No Comment In This Post")
             )
     }
 
     return res.status(200)
         .json(
-            new ApiResponse(200, comments, "comment found succesfully")
+            new ApiResponse(200, comments, "Comment Fetched Succesfully")
         )
 
 })
 
 const updateComment = asyncHandler(async (req, res) => {
-    const { id } = req.params
+    const { commentId } = req.params
 
     const content = req.body.content
 
     if (!content) {
-        throw new ApiError(400, "content is ruquire")
+        throw new ApiError(400, "Content is ruquired")
     }
 
     // update comment document
-    const comment = await Comment.findByIdAndUpdate(id,
+    const comment = await Comment.findByIdAndUpdate(commentId,
         {
             $set: {
                 content
@@ -256,22 +260,26 @@ const updateComment = asyncHandler(async (req, res) => {
         { new: true }
     )
 
+    if (!comment) {
+        throw new ApiError(404 , "Comment not found")
+    }
+
     return res.status(200)
         .json(
-            new ApiResponse(200, comment, "comment update successfully")
+            new ApiResponse(200, comment, "Updated Comment Successfully")
         )
 
 
 })
 
 const deleteComment = asyncHandler(async (req, res) => {
-    const { id } = req.params
+    const { commentId } = req.params
 
-    if (!id) {
-        throw new ApiError(400, "comment id is require")
+    if (!commentId) {
+        throw new ApiError(400, "Comment id required")
     }
 
-    const comment = await Comment.findById(id)
+    const comment = await Comment.findById(commentId)
 
     if (!comment) {
         throw new ApiError(404, "Comment not found")
@@ -285,7 +293,7 @@ const deleteComment = asyncHandler(async (req, res) => {
      
     return res.status(200)
         .json(
-            new ApiResponse(200, {}, "comment delete successfully")
+            new ApiResponse(200, {}, "Comment Delete Successfully")
         )
 })
 

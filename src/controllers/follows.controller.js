@@ -10,13 +10,13 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
     const { userId } = req.params
 
     if (!userId) {
-        throw new ApiError(400, "user id is required")
+        throw new ApiError(400, "User id required")
     }
 
     const user = await User.findById(userId)
 
     if (!user) {
-        throw new ApiError(404, "user not found")
+        throw new ApiError(404, "User not found")
     }
 
     // check current user follow to this user
@@ -60,7 +60,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
     if (!userId) {
-        throw new ApiError(400, "user id is required");
+        throw new ApiError(400, "User id required");
     }
     const userDetails = await Follows.aggregate([
         {
@@ -144,7 +144,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
 
 
     return res.status(200).json(
-        new ApiResponse(200, userDetails, "user followings found successfully")
+        new ApiResponse(200, userDetails, "Followings Fetched Successfully")
     )
 
 
@@ -158,7 +158,7 @@ const getUserFollowers = asyncHandler(async (req, res) => {
     const skip = parseInt(limit) * (parseInt(page) - 1)
 
     if (!userId) {
-        throw new ApiError(400, "user id is required");
+        throw new ApiError(400, "User id required");
     }
     const userDetails = await Follows.aggregate([
         {
@@ -243,7 +243,7 @@ const getUserFollowers = asyncHandler(async (req, res) => {
     ]);
 
     return res.status(200).json(
-        new ApiResponse(200, userDetails, "user followers found successfully")
+        new ApiResponse(200, userDetails, "Followers Fetched Successfully")
     );
 
 })

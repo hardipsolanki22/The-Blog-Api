@@ -6,10 +6,8 @@ const app = express()
 
 app.use(cors({
     origin: [process.env.REQUEST_URL, "http://localhost:5173"],
-    methods: ["POST", "GET", "DELETE", "PATCH"],
     credentials: true
 }));
-
 
 app.use(express.json({ limit: '50mb' }))
 

@@ -26,7 +26,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
     return res.status(201)
         .json(
-            new ApiResponse(201, tweet, "Tweet create successfully")
+            new ApiResponse(201, tweet, "Tweet Create Successfully")
         )
 
 })
@@ -210,7 +210,7 @@ const getTweets = asyncHandler(async (req, res) => {
 
     return res.status(200)
         .json(
-            new ApiResponse(200, tweet, "post found successfully")
+            new ApiResponse(200, tweet, "Tweets Found Successfully")
         )
 })
 
@@ -218,17 +218,25 @@ const deleteTweet = asyncHandler(async (req, res) => {
     const { tweetId } = req.params
 
     if (!tweetId) {
-        throw new ApiError(400, "Tweet id res required")
+        throw new ApiError(400, "Tweet id required")
+    }
+
+    const tweet = await Tweet.findById(tweetId)
+
+    if (!tweet) {
+        throw new ApiError(404, "Tweet not found")
     }
 
     // delete tweet like and dislike
-    await Like.deleteMany({ tweet: tweetId })
-    // delete tweet
-    await Tweet.findByIdAndDelete(tweetId)
+    await Like.deleteMany({ tweet: tweet._id })
 
+    // delete tweet
+     await Tweet.findByIdAndDelete(tweet._id)
+
+   
     res.status(200)
         .json(
-            new ApiResponse(200, {}, "Tweet delete successfully")
+            new ApiResponse(200, {}, " Delete Tweet Successfully")
         )
 
 })

@@ -12,14 +12,15 @@ const likeDislikePost = asyncHandler(async (req, res) => {
     const postId = req.params.postId
 
     if (!postId) {
-        throw new ApiError(400, "post id is require")
+        throw new ApiError(400, "Post id required")
     }
 
     const post = await Post.findById(postId)
 
     if (!post) {
-        throw new ApiError(404, "post not found")
+        throw new ApiError(404, "Post not found")
     }
+
     // check if current user like exsit
     const userAlreadyLiked = await Like.findOne({
         $and: [{ post: post._id }, { likedBy: req.user?._id }]
@@ -56,7 +57,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
 
 
     if (!postId) {
-        throw new ApiError(400, "post id is required")
+        throw new ApiError(400, "Post id required")
     }
 
     const post = await Post.findById(postId)
@@ -151,7 +152,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
 
     return res.status(200)
         .json(
-            new ApiResponse(200, postLikesDetails, "post like found successfully")
+            new ApiResponse(200, postLikesDetails, "Post Likes Fetched Successfully")
         )
 
 })
@@ -168,15 +169,14 @@ const likeDislikeComment = asyncHandler(async (req, res) => {
     const like = req.query.type;
 
     if (!commentId) {
-        throw new ApiError(400, "comment id is require")
+        throw new ApiError(400, "Comment id required")
     }
 
     const comment = await Comment.findById(commentId)
 
     if (!comment) {
-        throw new ApiError(404, "comment not found")
+        throw new ApiError(404, "Comment not found")
     }
-
 
     if (like === "LIKE") {
 
@@ -278,7 +278,7 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
     const { type } = req.query
 
     if (!tweetId) {
-        throw new ApiError(400, "Tweet id is required")
+        throw new ApiError(400, "Tweet id required")
     }
 
     const tweet = await Tweet.findById(tweetId)
@@ -376,7 +376,7 @@ const likeDislikeTweet = asyncHandler(async (req, res) => {
                         {
                             tweetDisLike: true
                         },
-                        "Tweet like successfully"
+                        "Tweet Like Successfully"
                     )
                 )
         } else {

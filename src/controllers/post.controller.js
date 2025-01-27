@@ -12,22 +12,22 @@ import { Comment } from '../models/comment.model.js'
 
 
 const createPost = asyncHandler(async (req, res) => {
-    const { title, content, status } = req.body    
+    const { title, content, status } = req.body
 
     if ([title, content].some((filed) => filed?.trim() === '')) {
-        throw new ApiError(400, "all filed are require")
+        throw new ApiError(400, "All filed required")
     }
 
     const imageLocalPath = req.file?.path
 
     if (!imageLocalPath) {
-        throw new ApiError(400, "Image is require")
+        throw new ApiError(400, "Image is required")
     }
 
     const image = await uploadCloudinary(imageLocalPath)
 
     if (!image) {
-        throw new ApiError(400, "Image is missing")
+        throw new ApiError(400, "Internal server error while uploading image")
     }
 
     const user = await User.findById(req.user._id)
@@ -44,12 +44,12 @@ const createPost = asyncHandler(async (req, res) => {
     const post = await Post.findById(createPost._id)
 
     if (!post) {
-        throw new ApiError(400, "Unauthorized requiest")
+        throw new ApiError(500, "Internal server error")
     }
 
     return res.status(201)
         .json(
-            new ApiResponse(201, post, "create post successfully")
+            new ApiResponse(201, post, "Post Created Successfully")
         )
 
 })
@@ -58,33 +58,32 @@ const getPost = asyncHandler(async (req, res) => {
     const { postId } = req.params
 
     if (!postId) {
-        throw new ApiError(400, "post id is  require")
+        throw new ApiError(400, "Post id required")
     }
 
     // get post and populate owner filed to get username
     const post = await Post.findById(postId).populate("owner", "username")
 
     if (!post) {
-        throw new ApiError(404, "post not found")
+        throw new ApiError(404, "Post not found")
     }
 
     return res.status(200)
         .json(
-            new ApiResponse(200, post, "post found successfully")
+            new ApiResponse(200, post, "Post Fetched Successfully")
         )
 })
 
 const updatePost = asyncHandler(async (req, res) => {
     const { title, content, status } = req.body
+    const { postId } = req.params
 
     if (!title || !content) {
         throw new ApiError(400, "At least one field is required")
     }
 
-    const { postId } = req.params
-
     if (!postId) {
-        throw new ApiError(400, "post id is require")
+        throw new ApiError(400, "Post id required")
     }
 
     // update post and populate owner filed to get username
@@ -101,12 +100,12 @@ const updatePost = asyncHandler(async (req, res) => {
     ).populate("owner", "username")
 
     if (!post) {
-        throw new ApiError(404, "post does not found")
+        throw new ApiError(404, "Post not found")
     }
 
     return res.status(200)
         .json(
-            new ApiResponse(200, post, "update post successfully")
+            new ApiResponse(200, post, "Post Updated Successfully")
         )
 
 
@@ -117,13 +116,13 @@ const getUserAllPost = asyncHandler(async (req, res) => {
     const { userId } = req.params
 
     if (!userId) {
-        throw new ApiError(400, "user id is required")
+        throw new ApiError(400, "User id required")
     }
 
     const user = await User.findById(userId)
 
     if (!user) {
-        throw new ApiError(404, "User does not exist")
+        throw new ApiError(404, "User not found")
     }
 
     const { page = 1, limit = 3 } = req.query
@@ -231,7 +230,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
 
     return res.status(200)
         .json(
-            new ApiResponse(200, posts, "user all post found suuceesfully")
+            new ApiResponse(200, posts, "All Post Fetched Successfully")
         )
 
 
@@ -375,7 +374,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
 
     return res.status(200)
         .json(
-            new ApiResponse(200, posts, "followings user posts found successfully")
+            new ApiResponse(200, posts, "Posts Fetched Successfully")
         )
 })
 
@@ -527,7 +526,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
 
 
     return res.status(200).json(
-        new ApiResponse(200, posts, "All Posts found successfully")
+        new ApiResponse(200, posts, "All Posts Fetched Successfully")
     );
 
 })
@@ -536,14 +535,15 @@ const deletePost = asyncHandler(async (req, res) => {
     const { postId } = req.params
 
     if (!postId) {
-        throw new ApiError(400, "post id is required")
+        throw new ApiError(400, "Post id required")
     }
 
     const post = await Post.findById(postId)
 
     if (!post) {
-        throw new ApiError(404, "post not found")
+        throw new ApiError(404, "Post not found")
     }
+
 
     // delete post like 
     await Like.deleteMany({ post: post._id })
@@ -557,9 +557,10 @@ const deletePost = asyncHandler(async (req, res) => {
     // delete post
     await Post.findByIdAndDelete(post._id)
 
+
     res.status(200)
         .json(
-            new ApiResponse(200, "post delete succesfully")
+            new ApiResponse(200, {}, "Delete Post Succesfully")
         )
 })
 
