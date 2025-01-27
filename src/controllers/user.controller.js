@@ -65,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (isUserExsist) {
         return res.status(400)
             .json(
-                new ApiResponse(400, {}, "User Already Exists")
+                new ApiResponse(409, {}, "User Already Exists")
             )
     }
 
@@ -88,7 +88,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const createUser = await User.create({
         name: `${name.replaceAll("@", "")}`,
-        username: username.toLowerCase().replaceAll(" ", ""),
+        username: username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
         email,
         password,
         avatar,
@@ -359,8 +359,8 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id,
         {
             $set: {
-                name: `${name}`,
-                username,
+                name: `${name.replaceAll("@", "")}`,
+                username: username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
                 email,
             }
         },

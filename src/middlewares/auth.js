@@ -24,7 +24,7 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
         
 
         if (!user) {
-            throw new ApiError(400, 'Invalide accessToken')
+            throw new ApiError(401, 'Invalide accessToken')
         }
 
         req.user = user
@@ -32,7 +32,7 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
       
 
     } catch (error) {
-        throw new ApiError(500, error.message)
+        throw new ApiError(401, error?.message || "Invalid Token")
     }
 
 })
