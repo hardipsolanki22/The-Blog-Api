@@ -32,7 +32,7 @@ const sendMail = async (username, email, token) => {
         })
 
     } catch (error) {
-        throw new ApiError(500, error.message || "Internal server error while send mail" )
+        throw new ApiError(500, error.message || "Internal server error while send mail")
     }
 }
 
@@ -63,9 +63,18 @@ const registerUser = asyncHandler(async (req, res) => {
     })
 
     if (isUserExsist) {
-        return res.status(400)
+        return res.status(409)
             .json(
                 new ApiResponse(409, {}, "User Already Exists")
+            )
+    }
+
+    const isUsernameExist = await User.find({ username })
+
+    if (isUsernameExist.length > 0) {
+        return res.status(409)
+            .json(
+                new ApiResponse(409, {}, "Username Already Availeble")
             )
     }
 
@@ -287,19 +296,22 @@ const resetPassword = asyncHandler(async (req, res) => {
     }
 
     if (password !== conformPassword) {
-        throw new ApiError(400, "Conform password is not same")
+        return res.status(400)
+            .json(
+                new ApiResponse(400, {}, "Passwords do not Match..!")
+            )
     }
 
     const decodedInfo = jwt.verify(token, process.env.RANDOME_STRING_GENERATE)
 
     const user = await User.findById(decodedInfo?._id)
 
-    if (!user) {
-        throw new ApiError(404, "Link is expired")
-    }
-
     if (user.token !== token) {
         throw new ApiError(400, "Invalid token")
+    }
+
+    if (!user) {
+        throw new ApiError(404, "Link is expired")
     }
 
     user.password = password
@@ -347,14 +359,18 @@ const updateUserDetails = asyncHandler(async (req, res) => {
         throw new ApiError(400, "At least one field is required")
     }
 
-    const isUsetnameAvailable = await User.find({ username })
 
-    if (isUsetnameAvailable.length >= 1) {
-        return res.status(400)
-            .json(
-                new ApiResponse(400, {}, "Username Already Availeble")
-            )
+    if (username !== req.user.username) {        
+        const isUsernameAvailable = await User.find({ username })
+
+        if (isUsernameAvailable.length >= 1) {
+            return res.status(409)
+                .json(
+                    new ApiResponse(409, {}, "Username Already Availeble")
+                )
+        }
     }
+
 
     const user = await User.findByIdAndUpdate(req.user._id,
         {
@@ -383,7 +399,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     const avatar = await uploadCloudinary(avatarLocalPath)
 
     if (!avatar) {
-        throw new ApiError(400, "Internal server error while uploading avatar")
+        throw new ApiError(500, "Internal server error while uploading avatar")
     }
 
     // delete avatar from cloudinary
@@ -413,7 +429,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     const coverImage = await uploadCloudinary(coverImageLocalPath)
 
     if (!coverImage) {
-        throw new ApiError(400, "Internal sercer error while uploading cover image")
+        throw new ApiError(500, "Internal sercer error while uploading cover image")
     }
 
     // delete coverImage form cloudinary
@@ -559,7 +575,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
         // find those user which is not in followingIds
         users = await User.find({ _id: { $nin: followingIds } }).select("-password")
     } else {
-        users = await User.find({ _id: { $nin: req.user._id} }).select("-password")
+        users = await User.find({ _id: { $nin: req.user._id } }).select("-password")
     }
 
     return res.status(200)

@@ -27,7 +27,7 @@ const createPost = asyncHandler(async (req, res) => {
     const image = await uploadCloudinary(imageLocalPath)
 
     if (!image) {
-        throw new ApiError(400, "Internal server error while uploading image")
+        throw new ApiError(500, "Internal server error while uploading image")
     }
 
     const user = await User.findById(req.user._id)
