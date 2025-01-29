@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     const isUserExsist = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ email }]
     })
 
     if (isUserExsist) {
@@ -92,6 +92,9 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
     if (!avatar) {
+        throw new ApiError(500, "Internal server error while uploading image")
+    }
+    if (coverImageLocalPath && !coverImage) {
         throw new ApiError(500, "Internal server error while uploading image")
     }
 
