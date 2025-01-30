@@ -17,6 +17,8 @@ app.use(express.static('public'))
 
 app.use(cookieParser())
 
+app.get("/" , (req, res) => res.send("The Blog Application Running..."))
+
 import healthcheckRoute from './routes/healthcheck.routes.js'
 import userRoute from './routes/user.routes.js'
 import postRoute from './routes/post.routes.js'

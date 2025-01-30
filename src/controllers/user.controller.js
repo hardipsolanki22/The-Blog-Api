@@ -161,8 +161,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const option = {
         httpOnly: true,
-        secure: true
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
     }
+    
 
     return res.status(200)
         // set cookie 
