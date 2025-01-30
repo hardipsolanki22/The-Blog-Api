@@ -159,17 +159,15 @@ const loginUser = asyncHandler(async (req, res) => {
         '-password -refreshToken'
     )
 
-    const option = {
+    const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
     }
     
-
     return res.status(200)
-        // set cookie 
-        .cookie('accessToken', AccessToken, option)
-        .cookie('refreshToken', RefreshToken, option)
+        .cookie('accessToken', AccessToken, options)  // set accessToken in cookie 
+        .cookie('refreshToken', RefreshToken, options)  // set refreshToke in cookie 
         .json(
             new ApiResponse(200,
                 {
@@ -225,15 +223,15 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     // refresh access token
     const { AccessToken, RefreshToken } = await generateAccessRefreshToken(user._id)
 
-    const option = {
+    const options = {
         httpOnly: true,
         secure: true
     }
 
     return res.status(200)
         // set cookie
-        .cookie('accessToekn', AccessToken, option)
-        .cookie('refreshToken', RefreshToken, option)
+        .cookie('accessToekn', AccessToken, options)
+        .cookie('refreshToken', RefreshToken, options)
         .json(
             new ApiResponse(200,
                 {
