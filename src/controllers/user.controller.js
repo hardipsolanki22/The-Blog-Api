@@ -158,12 +158,19 @@ const loginUser = asyncHandler(async (req, res) => {
         '-password -refreshToken'
     )
 
-    const options = {
+    // const options = {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
+    // }    
+
+    const option = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
-    }    
-        
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        path: '/'
+    }
+    
     return res.status(200)
         .cookie('accessToken', AccessToken, options)  // set accessToken in cookie 
         .cookie('refreshToken', RefreshToken, options)  // set refreshToke in cookie 
