@@ -161,9 +161,12 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV == "production",
         maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
     }
+
+    console.log("potion: ", options);
+    
     
     return res.status(200)
         .cookie('accessToken', AccessToken, options)  // set accessToken in cookie 
