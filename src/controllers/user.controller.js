@@ -158,19 +158,11 @@ const loginUser = asyncHandler(async (req, res) => {
         '-password -refreshToken'
     )
 
-    // const options = {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === "production",
-    //     maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
-    // }  
-    
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // production માં true, development માં false
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // production માં "none", development માં "lax"
-        maxAge: 1000 * 60 * 60 * 5, // 5 કલાક માટે
-        // domain: process.env.NODE_ENV === "production" ? "https://the-blog-h5bf.onrender.com/" : "localhost" // domain સેટ કરો
-    };
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
+    }    
         
     return res.status(200)
         .cookie('accessToken', AccessToken, options)  // set accessToken in cookie 
