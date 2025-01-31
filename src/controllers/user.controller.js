@@ -169,7 +169,7 @@ const loginUser = asyncHandler(async (req, res) => {
         secure: process.env.NODE_ENV === "production", // production માં true, development માં false
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // production માં "none", development માં "lax"
         maxAge: 1000 * 60 * 60 * 5, // 5 કલાક માટે
-        domain: process.env.NODE_ENV === "production" ? "your-production-domain.com" : "localhost" // domain સેટ કરો
+        // domain: process.env.NODE_ENV === "production" ? "https://the-blog-h5bf.onrender.com/" : "localhost" // domain સેટ કરો
     };
         
     return res.status(200)
