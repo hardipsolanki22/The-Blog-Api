@@ -17,7 +17,7 @@ const sendMail = async (username, email, token) => {
                 <div style="font-family: Arial, sans-serif; line-height: 1.6;">
                     <h2 style="color: #333;">Hi ${username},</h2>
                     <p>Please click the link below to reset your password:</p>
-                    <a href="http://localhost:5173/reset-password?token=${token}" style="color: #1a73e8;">Reset Password</a>
+                    <a href="https://the-blog-h5bf.onrender.com/reset-password?token=${token}" style="color: #1a73e8;">Reset Password</a>
                 </div>`
         }
 
