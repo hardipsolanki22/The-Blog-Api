@@ -164,7 +164,7 @@ const loginUser = asyncHandler(async (req, res) => {
         maxAge: 1000 * 60 * 60 * 5, // cookie expired in 5 hours
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', 
         path: '/', // cookie accessible on all paths
-        domain: process.env.NODE_ENV === 'production' ? '.the-blog-h5bf.onrender.com' : 'localhost' // set domain in production
+        domain: process.env.NODE_ENV === 'production' ? '.the-blog-h5bf.onrender.com' : undefined // set domain in production
     };  
     
     return res.status(200)
@@ -192,10 +192,11 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-         path: '/'
-    }
+        secure: process.env.NODE_ENV === 'production', // true only in production with HTTPS
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', 
+        path: '/', // cookie accessible on all paths
+        domain: process.env.NODE_ENV === 'production' ? '.the-blog-h5bf.onrender.com' : undefined // set domain in production
+    };  
 
     return res.status(200)
         // clear cookis
