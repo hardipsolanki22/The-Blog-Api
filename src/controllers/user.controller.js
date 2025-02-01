@@ -163,7 +163,7 @@ const loginUser = asyncHandler(async (req, res) => {
         secure: process.env.NODE_ENV === 'production',
         maxAge: 1000 * 60 * 60 * 5,     // cookie expired in 5 hours
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-
+         path: '/'
     }    
     
     return res.status(200)
@@ -189,15 +189,17 @@ const logoutUser = asyncHandler(async (req, res) => {
         { new: true }
     )
 
-    const option = {
+    const options = {
         httpOnly: true,
-        secure: true
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+         path: '/'
     }
 
     return res.status(200)
-        // clear cooki
-        .clearCookie('accessToken', option)
-        .clearCookie('refreshToken', option)
+        // clear cookis
+        .clearCookie('accessToken', options)
+        .clearCookie('refreshToken', options)
         .json(
             new ApiResponse(200, {}, 'logged Out Successfully')
         )
