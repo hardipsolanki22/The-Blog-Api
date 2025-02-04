@@ -177,7 +177,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
 
                 // count post likes if null then retuen []
                 likesCount: {
-                    $size: "$likes"
+                    $size: {$ifNull: ["$likes", []]}
                 },
 
                 // count post comments if null then retuen []
