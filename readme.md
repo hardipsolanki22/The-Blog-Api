@@ -30,8 +30,8 @@ The Blog is a comprehensive social blogging platform that enables users to share
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/hardipsolanki22/the-blog.git
-   cd the-blog
+   git clone https://github.com/hardipsolanki22/The-Blog-Api.git
+   cd The-Blog-Api
 
 ## Usage
 
