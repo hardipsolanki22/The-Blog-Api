@@ -1,4 +1,4 @@
-import { Follows } from "../models/followersFollowings.modles.js";
+import { Follows } from "../models/follow.model.js";
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
@@ -21,7 +21,7 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
 
     // check current user follow to this user
     const userHasAlreadyFollow = await Follows.findOne({
-        $and: [{ followers: req.user?._id }, { followings: userId }]
+        $and: [{ followers: req.user?._id }, { following: userId }]
     })
 
     if (!userHasAlreadyFollow) {
@@ -29,7 +29,7 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
         // if current user is not following then create following document
         await Follows.create({
             followers: req.user?._id,
-            followings: userId
+            following: userId
         })
 
         return res.status(201)
@@ -40,7 +40,7 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
 
         // if current user is following then delete following document
         await Follows.findOneAndDelete({
-            $and: [{ followers: req.user._id }, { followings: userId }]
+            $and: [{ followers: req.user._id }, { following: userId }]
         })
 
         return res.status(200)
@@ -51,7 +51,7 @@ const followUnfollowUser = asyncHandler(async (req, res) => {
 
 })
 
-const getUserFollowigns = asyncHandler(async (req, res) => {
+const getUserFollowing = asyncHandler(async (req, res) => {
 
     const { userId } = req.params
     const { page = 1, limit = 10 } = req.query
@@ -62,6 +62,13 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
     if (!userId) {
         throw new ApiError(400, "User id required");
     }
+
+    const user = await User.findById(userId)
+
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
     const userDetails = await Follows.aggregate([
         {
             $match: {
@@ -72,7 +79,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
             // get following user details (username ...etc)
             $lookup: {
                 from: "users",
-                localField: "followings",
+                localField: "following",
                 foreignField: "_id",
                 as: "followDetails",
                 pipeline: [
@@ -87,7 +94,7 @@ const getUserFollowigns = asyncHandler(async (req, res) => {
                         $lookup: {
                             from: "follows",
                             localField: "_id",
-                            foreignField: "followings",
+                            foreignField: "following",
                             as: "userFollowers"
                         }
                     },
@@ -160,10 +167,17 @@ const getUserFollowers = asyncHandler(async (req, res) => {
     if (!userId) {
         throw new ApiError(400, "User id required");
     }
+
+    const user = await User.findById(userId)
+
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
     const userDetails = await Follows.aggregate([
         {
             $match: {
-                followings: new mongoose.Types.ObjectId(userId),
+                following: new mongoose.Types.ObjectId(userId),
             }
         },
         {
@@ -185,7 +199,7 @@ const getUserFollowers = asyncHandler(async (req, res) => {
                         $lookup: {
                             from: "follows",
                             localField: "_id",
-                            foreignField: "followings",
+                            foreignField: "following",
                             as: "userFollowers"
                         }
                     },
@@ -251,6 +265,6 @@ const getUserFollowers = asyncHandler(async (req, res) => {
 
 export {
     followUnfollowUser,
-    getUserFollowigns,
+    getUserFollowing,
     getUserFollowers,
 }

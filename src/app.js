@@ -17,7 +17,7 @@ app.use(express.static('public'))
 
 app.use(cookieParser())
 
-app.get("/" , (_, res) => res.send("The Blog Application Running..."))
+app.get("/" , (req, res) => res.send("The Blog Application Running..."))
 
 import healthcheckRoute from './routes/healthcheck.routes.js'
 import userRoute from './routes/user.routes.js'
@@ -28,12 +28,12 @@ import commentRoute from './routes/comment.routes.js'
 import tweetRoute from './routes/tweet.routes.js'
 
 app.use('/api/v1/healthcheck', healthcheckRoute)
-app.use('/api/v1/user', userRoute)
-app.use('/api/v1/post', postRoute)
-app.use('/api/v1/follows', followsRoute)
+app.use('/api/v1/users', userRoute)
+app.use('/api/v1/posts', postRoute)
+app.use('/api/v1/follow', followsRoute)
 app.use('/api/v1/like', likesRoute)
-app.use('/api/v1/comment', commentRoute)
-app.use('/api/v1/tweet', tweetRoute)
+app.use('/api/v1/comments', commentRoute)
+app.use('/api/v1/tweets', tweetRoute)
 
 
 export { app }

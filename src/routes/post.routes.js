@@ -5,20 +5,23 @@ import {
          getUserAllPost,
          getPost,
          updatePost, 
-         getFollowingsUserPost,
+         getFollowingUserPost,
          getAllPosts,
          createPost} from "../controllers/post.controller.js";
 import { upload } from "../middlewares/multer.js";
 
 const router = Router()
 
-router.route('/add-post').post(verifyJwt, upload.single('post'), createPost)
-router.route('/update-posts/:postId').patch(verifyJwt , updatePost)
-router.route('/get-posts/:postId').get(verifyJwt , getPost)
-router.route('/get-user-all-posts/:userId').get(verifyJwt , getUserAllPost)
-router.route('/get-followings-user-posts').get(verifyJwt , getFollowingsUserPost)
-router.route('/get-all-posts').get(verifyJwt ,getAllPosts)
-router.route('/delete-posts/:postId').delete(verifyJwt , deletePost)
+//todo
+router.route('/')
+        .post(verifyJwt, upload.single('post'), createPost)
+        .get(verifyJwt ,getAllPosts)
+router.route('/follow/posts').get(verifyJwt , getFollowingUserPost)
+router.route('/:postId')
+            .get(verifyJwt , getPost)
+            .patch(verifyJwt , updatePost)
+            .delete(verifyJwt , deletePost)
+router.route('/users/:userId').get(verifyJwt , getUserAllPost)
 
 export default router
 

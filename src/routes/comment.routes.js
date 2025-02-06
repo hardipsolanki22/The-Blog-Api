@@ -4,9 +4,9 @@ import { createComment, deleteComment, getPostComment, updateComment } from "../
 
 const router = Router()
 
-router.route('/create-comment/:postId').post(verifyJwt, createComment)
-router.route('/get-post-comments/:postId').get(verifyJwt, getPostComment)
-router.route('/update-comments/:commentId').patch(verifyJwt, updateComment)
-router.route('/delete-comments/:commentId').delete(verifyJwt, deleteComment)
+router.route('/posts/:postId').post(verifyJwt, createComment)
+            .get(verifyJwt, getPostComment)
+router.route('/:commentId').patch(verifyJwt, updateComment)
+            .delete(verifyJwt, deleteComment)
 
 export default router

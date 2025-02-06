@@ -5,7 +5,7 @@ import { ApiResponse } from '../utils/ApiResponse.js'
 import { destroyCloudinary, uploadCloudinary } from '../utils/Cloudinary.js'
 import { User } from '../models/user.model.js'
 import mongoose from 'mongoose'
-import { Follows } from '../models/followersFollowings.modles.js'
+import { Follows } from '../models/follow.model.js'
 import { Like } from '../models/like.model.js'
 import { Comment } from '../models/comment.model.js'
 
@@ -76,9 +76,9 @@ const getPost = asyncHandler(async (req, res) => {
 
 const updatePost = asyncHandler(async (req, res) => {
     const { title, content, status } = req.body
-    const { postId } = req.params
+    const { postId } = req.params    
 
-    if (!title || !content) {
+    if (!title && !content) {
         throw new ApiError(400, "At least one field is required")
     }
 
@@ -203,7 +203,6 @@ const getUserAllPost = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                isUserLiked: 1,
                 isLiked: 1,
                 owner: 1,
                 title: 1,
@@ -237,7 +236,7 @@ const getUserAllPost = asyncHandler(async (req, res) => {
 
 })
 
-const getFollowingsUserPost = asyncHandler(async (req, res) => {
+const getFollowingUserPost = asyncHandler(async (req, res) => {
 
     const { page = 1, limit = 5 } = req.query
 
@@ -249,7 +248,7 @@ const getFollowingsUserPost = asyncHandler(async (req, res) => {
         .select("-followers")
 
     // get perticular id in array
-    const followingIds = followings?.map(follow => follow.followings)
+    const followingIds = followings?.map(follow => follow.following)
 
 
     const posts = await Post.aggregate([
@@ -387,10 +386,10 @@ const getAllPosts = asyncHandler(async (req, res) => {
 
     // get current user following
     const followings = await Follows.find({ followers: req.user._id }).
-        select('followings');
+        select('following');
 
     // get perticular id in array
-    const followingIds = followings.map(follow => follow.followings);
+    const followingIds = followings.map(follow => follow.following);
 
     const posts = await Post.aggregate([
         {
@@ -570,7 +569,7 @@ export {
     getPost,
     updatePost,
     getUserAllPost,
-    getFollowingsUserPost,
+    getFollowingUserPost,
     getAllPosts,
     deletePost
 }

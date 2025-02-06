@@ -96,7 +96,7 @@ const getPostLikes = asyncHandler(async (req, res) => {
                         $lookup: {
                             from: "follows",
                             localField: "_id",
-                            foreignField: "followings",
+                            foreignField: "following",
                             as: "userFollowers"
                         }
                     },

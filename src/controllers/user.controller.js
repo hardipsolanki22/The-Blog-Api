@@ -5,7 +5,7 @@ import { ApiResponse } from '../utils/ApiResponse.js'
 import { destroyCloudinary, uploadCloudinary } from '../utils/Cloudinary.js'
 import jwt from 'jsonwebtoken'
 import { transporter } from '../utils/mail.js'
-import { Follows } from '../models/followersFollowings.modles.js'
+import { Follows } from '../models/follow.model.js'
 
 const sendMail = async (username, email, token) => {
     try {
@@ -359,7 +359,7 @@ const changePassword = asyncHandler(async (req, res) => {
 const updateUserDetails = asyncHandler(async (req, res) => {
     const { name, username, email } = req.body
 
-    if (!name || !username || !email) {
+    if (!name && !username && !email) {
         throw new ApiError(400, "At least one field is required")
     }
 
@@ -379,8 +379,8 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id,
         {
             $set: {
-                name: `${name.replaceAll("@", "")}`,
-                username: username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+                name: name && `${name?.replaceAll("@", "")}`,
+                username: username?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
                 email,
             }
         },
@@ -497,14 +497,14 @@ const getUserProfile = asyncHandler(async (req, res) => {
                 from: "follows",
                 foreignField: "followers",
                 localField: "_id",
-                as: "followings"
+                as: "following"
             }
         },
         {
             // get user followers
             $lookup: {
                 from: "follows",
-                foreignField: "followings",
+                foreignField: "following",
                 localField: '_id',
                 as: "followers"
             }
@@ -513,8 +513,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
             $addFields: {
 
                 // count user following if null then return epmty array
-                followingsCount: {
-                    $size: { $ifNull: ["$followings", []] }
+                followingCount: {
+                    $size: { $ifNull: ["$following", []] }
                 },
 
                 // count user followers if null then return epmty array
@@ -541,7 +541,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
                 email: 1,
                 avatar: 1,
                 coverImage: 1,
-                followingsCount: 1,
+                followingCount: 1,
                 followersCount: 1,
                 isFollowed: 1,
                 createdAt: 1
@@ -556,7 +556,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(
-            new ApiResponse(200, profile[0], "User Profiule Fetched Successfully")
+            new ApiResponse(200, profile[0], "User Profile Fetched Successfully")
         )
 
 })
@@ -569,9 +569,9 @@ const getAllUsers = asyncHandler(async (req, res) => {
     // all users not only login user
 
     const userFollowings = await Follows.find({ followers: req.user._id })
-    userFollowings.push({ followings: req.user._id })
+    userFollowings.push({ following: req.user._id })
 
-    const followingIds = userFollowings.map((follow) => follow.followings)
+    const followingIds = userFollowings.map((follow) => follow.following)
 
     let users;
 

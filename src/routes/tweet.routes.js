@@ -4,8 +4,8 @@ import { createTweet, deleteTweet, getTweets } from '../controllers/tweet.contro
 
 const router = Router()
 
-router.route('/create-tweet').post(verifyJwt, createTweet)
-router.route('/get-tweets').get(verifyJwt, getTweets)
-router.route('/delete-tweets/:tweetId').delete(verifyJwt, deleteTweet)
+router.route('/').get(verifyJwt, getTweets)
+                .post(verifyJwt, createTweet)
+router.route('/:tweetId').delete(verifyJwt, deleteTweet)
 
 export default router

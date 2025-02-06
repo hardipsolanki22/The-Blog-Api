@@ -4,10 +4,10 @@ import {getPostLikes, likeDislikeComment, likeDislikePost, likeDislikeTweet } fr
 
 const router = Router()
 
-router.route('/create-like/:postId').post(verifyJwt, likeDislikePost)
-router.route('/create-comment-likes/:commentId').post(verifyJwt, likeDislikeComment)
-router.route('/get-likes/:postId').get(verifyJwt, getPostLikes)
-router.route('/create-tweet-likes/:tweetId').post(verifyJwt, likeDislikeTweet)
+router.route('/posts/:postId').post(verifyJwt, likeDislikePost)
+        .get(verifyJwt, getPostLikes)
+router.route('/commets/:commentId').post(verifyJwt, likeDislikeComment)
+router.route('/tweets/:tweetId').post(verifyJwt, likeDislikeTweet)
 
 
 

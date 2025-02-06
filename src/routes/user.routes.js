@@ -33,7 +33,7 @@ router.route('/register').post(
         ]),
         registerUser
     )
-
+router.route('/').get(verifyJwt, getAllUsers)
 router.route('/login').post(loginUser)
 router.route('/logout').post(verifyJwt, logoutUser)
 router.route('/access-refresh-token').post(refreshAccessToken)
@@ -53,6 +53,6 @@ router.route('/update-cover-image').patch(
 router.route('/search-user').get(verifyJwt, searchUser)
 router.route('/forger-password').post(forgetPassword)
 router.route('/reset-password').patch(resetPassword)
-router.route('/profile/:username').get(verifyJwt, getUserProfile)
-router.route('/get-all-users').get(verifyJwt, getAllUsers)
+router.route('/:username').get(verifyJwt, getUserProfile)
+
 export default router

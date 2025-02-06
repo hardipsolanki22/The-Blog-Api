@@ -3,6 +3,8 @@
 ## Description
 The Blog is a comprehensive social blogging platform that enables users to share their thoughts, follow other users, and engage in discussions through posts and comments. The platform features a robust set of functionalities, including user authentication, post management, and real-time updates. It is built using modern technologies like Node.js, Express, MongoDB, React, and Tailwind CSS, ensuring a seamless and responsive user experience.
 
+![Project Demo](https://github.com/hardipsolanki22/The-Blog-Api/blob/main/path/to/Screenshot.png)
+
 ## Features
 - **Signup**: Users can create an account.
 - **Login**: Users can log into their account.
